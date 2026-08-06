@@ -1,195 +1,243 @@
 // notes@maestroschan.fr/prefs.js
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
+import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import Adw from 'gi://Adw';
+import Gtk from 'gi://Gtk';
+import Gdk from 'gi://Gdk';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
-const{ GObject, Gtk, Gdk, GdkPixbuf, GLib } = imports.gi;
-const Mainloop = imports.mainloop;
+export default class NotesExtensionPreferences extends ExtensionPreferences {
+    fillPreferencesWindow(window) {
+        this._settings = this.getSettings();
 
-const Gettext = imports.gettext.domain('notes-extension');
-const _ = Gettext.gettext;
+        // ---------------------------------------------------------------------
+        // 1. BEÁLLÍTÁSOK OLDAL (Settings)
+        // ---------------------------------------------------------------------
+        const pageSettings = new Adw.PreferencesPage({
+            title: _('Settings'),
+            icon_name: 'emblem-system-symbolic',
+        });
+        window.add(pageSettings);
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+        // --- Elhelyezkedés csoport ---
+        const groupPosition = new Adw.PreferencesGroup({
+            title: _('Position & Behavior'),
+        });
+        pageSettings.add(groupPosition);
 
-function init() {
-	ExtensionUtils.initTranslations();
+        // Pozíció kiválasztó (ComboRow)
+        const positionRow = new Adw.ComboRow({
+            title: _('Position of notes'),
+            subtitle: _('Choose how notes are layered on the screen'),
+            model: Gtk.StringList.new([
+                _('Above everything'),
+                _('On the background'),
+                _('Cycle through 3 states')
+            ]),
+        });
+
+        const currentPos = this._settings.get_string('layout-position');
+        if (currentPos === 'on-background') positionRow.selected = 1;
+        else if (currentPos === 'cycle-layers') positionRow.selected = 2;
+        else positionRow.selected = 0;
+
+        positionRow.connect('notify::selected', () => {
+            const idx = positionRow.selected;
+            if (idx === 1) this._settings.set_string('layout-position', 'on-background');
+            else if (idx === 2) this._settings.set_string('layout-position', 'cycle-layers');
+            else this._settings.set_string('layout-position', 'above-all');
+        });
+        groupPosition.add(positionRow);
+
+        // Automatikus fókusz (SwitchRow)
+        const focusRow = new Adw.SwitchRow({
+            title: _('Automatic focus'),
+            subtitle: _('Focus the note automatically when hovered'),
+            active: this._settings.get_boolean('auto-focus'),
+        });
+        focusRow.connect('notify::active', () => {
+            this._settings.set_boolean('auto-focus', focusRow.active);
+        });
+        groupPosition.add(focusRow);
+
+        // Ikon elrejtése (SwitchRow)
+        const hideIconRow = new Adw.SwitchRow({
+            title: _('Hide top panel icon'),
+            active: this._settings.get_boolean('hide-icon'),
+        });
+        hideIconRow.connect('notify::active', () => {
+            this._settings.set_boolean('hide-icon', hideIconRow.active);
+        });
+        groupPosition.add(hideIconRow);
+
+        // --- Billentyűkombináció csoport ---
+        const groupShortcut = new Adw.PreferencesGroup({
+            title: _('Keyboard Shortcut'),
+        });
+        pageSettings.add(groupShortcut);
+
+        const shortcutSwitchRow = new Adw.SwitchRow({
+            title: _('Use keyboard shortcut'),
+            subtitle: _('Toggle notes visibility with a hotkey (Default: <Super><Alt>n)'),
+            active: this._settings.get_boolean('use-shortcut'),
+        });
+        groupShortcut.add(shortcutSwitchRow);
+
+        const shortcutEntryRow = new Adw.EntryRow({
+            title: _('Shortcut'),
+            text: this._settings.get_strv('notes-kb-shortcut')[0] || '<Super><Alt>n',
+            sensitive: shortcutSwitchRow.active,
+        });
+
+        // Mentés gomb az entry-ben
+        const applyBtn = new Gtk.Button({
+            label: _('Apply'),
+            valign: Gtk.Align.CENTER,
+            css_classes: ['suggested-action'],
+        });
+        applyBtn.connect('clicked', () => {
+            this._settings.set_strv('notes-kb-shortcut', [shortcutEntryRow.text]);
+        });
+        shortcutEntryRow.add_suffix(applyBtn);
+        groupShortcut.add(shortcutEntryRow);
+
+        shortcutSwitchRow.connect('notify::active', () => {
+            const active = shortcutSwitchRow.active;
+            this._settings.set_boolean('use-shortcut', active);
+            shortcutEntryRow.sensitive = active;
+        });
+
+        // --- Színek csoport ---
+        const groupAppearance = new Adw.PreferencesGroup({
+            title: _('Appearance'),
+        });
+        pageSettings.add(groupAppearance);
+
+        const colorRow = new Adw.ActionRow({
+            title: _("First note's color"),
+            subtitle: _('New notes will inherit the parent note color'),
+        });
+
+        const colorBtn = new Gtk.ColorButton({
+            valign: Gtk.Align.CENTER,
+            use_alpha: false,
+        });
+
+        const colorArray = this._settings.get_strv('first-note-rgb');
+        let rgba = new Gdk.RGBA();
+        if (colorArray && colorArray.length >= 3) {
+            rgba.red = parseFloat(colorArray[0]);
+            rgba.green = parseFloat(colorArray[1]);
+            rgba.blue = parseFloat(colorArray[2]);
+            rgba.alpha = 1.0;
+        }
+        colorBtn.set_rgba(rgba);
+
+        colorBtn.connect('color-set', (widget) => {
+            rgba = widget.get_rgba();
+            this._settings.set_strv('first-note-rgb', [
+                rgba.red.toString(),
+                rgba.green.toString(),
+                rgba.blue.toString()
+            ]);
+        });
+
+        colorRow.add_suffix(colorBtn);
+        groupAppearance.add(colorRow);
+
+
+        // ---------------------------------------------------------------------
+        // 2. MENTÉS / ADATOK OLDAL (Backup)
+        // ---------------------------------------------------------------------
+        const pageBackup = new Adw.PreferencesPage({
+            title: _('Backup'),
+            icon_name: 'folder-saved-search-symbolic',
+        });
+        window.add(pageBackup);
+
+        const groupBackup = new Adw.PreferencesGroup({
+            title: _('Data Storage'),
+            description: _('Your notes are saved to disk automatically. Files ending with _state store position/color, and _text contain the note content.'),
+        });
+        pageBackup.add(groupBackup);
+
+        const openFolderRow = new Adw.ActionRow({
+            title: _('Storage Directory'),
+            subtitle: _('Open the folder where notes are saved'),
+        });
+
+        const openFolderBtn = new Gtk.Button({
+            icon_name: 'folder-open-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        openFolderBtn.connect('clicked', () => {
+            const datadir = GLib.build_pathv('/', [GLib.get_user_data_dir(), this.metadata.uuid]);
+            GLib.spawn_command_line_async('xdg-open ' + datadir);
+        });
+
+        openFolderRow.add_suffix(openFolderBtn);
+        openFolderRow.activatable_widget = openFolderBtn;
+        groupBackup.add(openFolderRow);
+
+
+        // ---------------------------------------------------------------------
+        // 3. SÚGÓ & INFO OLDAL (Help & About)
+        // ---------------------------------------------------------------------
+        const pageHelp = new Adw.PreferencesPage({
+            title: _('Help & About'),
+            icon_name: 'help-about-symbolic',
+        });
+        window.add(pageHelp);
+
+        const groupHelp = new Adw.PreferencesGroup({
+            title: _('Troubleshooting'),
+        });
+        pageHelp.add(groupHelp);
+
+        const resetMonitorRow = new Adw.ActionRow({
+            title: _('Bring back notes'),
+            subtitle: _('Click if a note got stuck outside your primary monitor'),
+        });
+
+        const resetBtn = new Gtk.Button({
+            label: _('Reset Position'),
+            valign: Gtk.Align.CENTER,
+        });
+        resetBtn.connect('clicked', () => {
+            this._settings.set_boolean('ugly-hack', !this._settings.get_boolean('ugly-hack'));
+        });
+
+        resetMonitorRow.add_suffix(resetBtn);
+        groupHelp.add(resetMonitorRow);
+
+        const groupAbout = new Adw.PreferencesGroup({
+            title: _('About Notes'),
+        });
+        pageHelp.add(groupAbout);
+
+        const versionRow = new Adw.ActionRow({
+            title: _('Extension Version'),
+            subtitle: (this.metadata.version ?? 'Unknown').toString(),
+        });
+        groupAbout.add(versionRow);
+
+        const githubRow = new Adw.ActionRow({
+            title: _('Source Code / Bug Report'),
+            subtitle: this.metadata.url || '',
+        });
+        const githubBtn = new Gtk.Button({
+            icon_name: 'adw-external-link-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        githubBtn.connect('clicked', () => {
+            if (this.metadata.url) {
+                Gio.AppInfo.launch_default_for_uri_async(this.metadata.url, null, null, null);
+            }
+        });
+        githubRow.add_suffix(githubBtn);
+        githubRow.activatable_widget = githubBtn;
+        groupAbout.add(githubRow);
+    }
 }
-
-let SETTINGS = ExtensionUtils.getSettings();
-
-//------------------------------------------------------------------------------
-
-const NotesSettingsWidget = new GObject.Class({
-	Name: 'NotesSettingsWidget',
-	GTypeName: 'NotesSettingsWidget',
-
-	_init () {
-		let builder = new Gtk.Builder();
-		builder.add_from_file(Me.path+'/prefs.ui');
-		this.prefs_stack = builder.get_object('prefs_stack');
-
-		this._buildSettingsPage(builder);
-		this._buildHelpPage(builder);
-		this._buildAboutPage(builder);
-	},
-
-	//--------------------------------------------------------------------------
-
-	_buildSettingsPage (builder) {
-		let RELOAD_TEXT = _("Modifications will be effective after reloading the extension.");
-
-		// Position of the notes (layer)
-		let radioBtn1 = builder.get_object('radio1');
-		let radioBtn2 = builder.get_object('radio2');
-		let radioBtn3 = builder.get_object('radio3');
-		switch (SETTINGS.get_string('layout-position')) {
-			case 'above-all':
-				radioBtn1.set_active(true);
-			break;
-			case 'on-background':
-				radioBtn2.set_active(true);
-			break;
-			case 'cycle-layers':
-				radioBtn3.set_active(true);
-			break;
-			default: break;
-		}
-		this._connectRadioBtn('above-all', radioBtn1);
-		this._connectRadioBtn('on-background', radioBtn2);
-		this._connectRadioBtn('cycle-layers', radioBtn3);
-
-		//----------------------------------------------------------------------
-
-		let focus_switch = builder.get_object('focus_switch');
-		focus_switch.set_state(SETTINGS.get_boolean('auto-focus'));
-		focus_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('auto-focus', widget.active);
-		});
-
-		//----------------------------------------------------------------------
-
-		// The "hide icon" switch has to be build before the keybinding switch
-		this._hide_switch = builder.get_object('hide_switch');
-		this._hide_switch.set_state(SETTINGS.get_boolean('hide-icon'));
-		this._hide_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('hide-icon', widget.active);
-		});
-
-		//----------------------------------------------------------------------
-
-		// Context: %s will be replaced with the default keyboard shortcut
-		let default_kbs_label = _("Default value is %s");
-		default_kbs_label = default_kbs_label.replace('%s', "<Super><Alt>n");
-
-		// Text entry
-		let keybinding_entry = builder.get_object('keybinding_entry');
-		keybinding_entry.set_sensitive(SETTINGS.get_boolean('use-shortcut'));
-		keybinding_entry.set_tooltip_text(default_kbs_label);
-
-		builder.get_object('default-kbs-help-1').set_label(default_kbs_label);
-		builder.get_object('default-kbs-help-2').set_label(RELOAD_TEXT);
-
-		if (SETTINGS.get_strv('notes-kb-shortcut') != '') {
-			keybinding_entry.text = SETTINGS.get_strv('notes-kb-shortcut')[0];
-		}
-
-		// "Apply" button
-		let keybinding_button = builder.get_object('keybinding_button');
-		keybinding_button.set_sensitive(SETTINGS.get_boolean('use-shortcut'));
-
-		keybinding_button.connect('clicked', (widget) => {
-			SETTINGS.set_strv('notes-kb-shortcut', [keybinding_entry.text]);
-		});
-
-		// "Enable shortcut" switch
-		let keybinding_switch = builder.get_object('keybinding_switch');
-		keybinding_switch.set_state(SETTINGS.get_boolean('use-shortcut'));
-
-		keybinding_switch.connect('notify::active', (widget) => {
-			SETTINGS.set_boolean('use-shortcut', widget.active);
-			keybinding_entry.sensitive = widget.active;
-			keybinding_button.sensitive = widget.active;
-			this._hide_switch.sensitive = widget.active;
-		});
-
-		//----------------------------------------------------------------------
-
-		// The default color of the very first note
-		let color_btn = builder.get_object('default_rgb_btn');
-		let colorArray = SETTINGS.get_strv('first-note-rgb');
-		let rgba = new Gdk.RGBA();
-		rgba.red = parseFloat(colorArray[0]);
-		rgba.green = parseFloat(colorArray[1]);
-		rgba.blue = parseFloat(colorArray[2]);
-		rgba.alpha = 1.0;
-		color_btn.set_rgba(rgba);
-
-		color_btn.connect('color-set', (widget) => {
-			rgba = widget.get_rgba();
-			SETTINGS.set_strv('first-note-rgb', [
-				rgba.red.toString(),
-				rgba.green.toString(),
-				rgba.blue.toString()
-			]);
-		});
-	},
-
-	_connectRadioBtn(strId, widget) {
-		widget.connect('toggled', (widget) => {
-			SETTINGS.set_string('layout-position', strId);
-		});
-	},
-
-	//--------------------------------------------------------------------------
-
-	_buildHelpPage(builder) {
-		let help_url = Me.metadata.url.toString();
-		help_url += "/blob/master/user-help/README.md";
-		builder.get_object('help_btn').set_uri(help_url);
-
-		let data_button = builder.get_object('backup_btn');
-		data_button.connect('clicked', (widget) => {
-			let datadir = GLib.build_pathv('/', [GLib.get_user_data_dir(), 'notes@maestroschan.fr']);
-			GLib.spawn_command_line_async('xdg-open ' + datadir);
-		});
-
-		let reset_button = builder.get_object('reset_btn');
-		reset_button.connect('clicked', (widget) => {
-			SETTINGS.set_boolean('ugly-hack', !SETTINGS.get_boolean('ugly-hack'));
-		});
-	},
-
-	//--------------------------------------------------------------------------
-
-	_buildAboutPage(builder) {
-		builder.get_object('about_icon').set_from_pixbuf(
-			GdkPixbuf.Pixbuf.new_from_file_at_size(Me.path +
-		                             '/screenshots/about_picture.png', 163, 114)
-		);
-
-		let ext_version = _("Version %s").replace('%s', Me.metadata.version.toString());
-		builder.get_object('label_version').set_label(ext_version)
-
-		let translation_credits = builder.get_object('translation_credits').get_label();
-		if (translation_credits == 'translator-credits') {
-			builder.get_object('translation_label').set_label('');
-			builder.get_object('translation_credits').set_label('');
-		}
-
-		let ext_report_url = Me.metadata.url.toString();
-		builder.get_object('report_link_button').set_uri(ext_report_url);
-	}
-
-});
-
-//------------------------------------------------------------------------------
-
-// I guess this is like the "enable" in extension.js : something called each
-// time he user try to access the settings' window
-function buildPrefsWidget() {
-	let widget = new NotesSettingsWidget();
-	return widget.prefs_stack;
-}
-
-//------------------------------------------------------------------------------
-

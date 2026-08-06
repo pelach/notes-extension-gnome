@@ -1,18 +1,18 @@
-/* Notes' "body" **************************************************************/
-
 .noteBoxStyle {
 	padding: 0px;
 	margin: 0px;
 }
 
+/* Árnyék kikapcsolva, hogy ne legyen fekete keret és beragadás */
 .noteBoxStyle:hover {
-	box-shadow: 0px 0px 10px #000;
+	box-shadow: none;
 }
 
 .notesTextField {
-	border-width: 0px;
-	border-radius: 0px;
-	box-shadow: none;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    padding: 4px;
 }
 
 .notesBackground {
@@ -23,13 +23,15 @@
 
 /* Notes' headers and the buttons in them *************************************/
 
-.noteHeaderStyle {
-	spacing: 10px;
-	margin: 5px;
+.notesTitleButton {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
-.notesTitleButton {
-	text-align: center;
+.noteHeaderStyle {
+    padding: 4px;
+    spacing: 4px;
 }
 
 .notesCircleButton {
@@ -44,7 +46,7 @@
 /* Intended to be used with notesCircleButton */
 .notesHeaderboxButton {
 	border-style: solid;
-	border-color: grey; /* TODO should be the same as the note's text */
+	border-color: grey;
 }
 
 .notesCircleButton:hover, .notesCircleButton:active {
@@ -54,4 +56,67 @@
 	width: 26px;
 }
 
+.noteBoxStyle {
+    padding: 0px;
+    margin: 0px;
+}
 
+/* Árnyék kikapcsolva, hogy ne legyen fekete keret és beragadás */
+.noteBoxStyle:hover,
+.noteBoxStyle:focus {
+    box-shadow: none !important;
+}
+
+/* Szövegbeviteli mező letisztítása ******************************************/
+
+.notesTextField,
+.notesTextField:focus,
+.notesTextField:hover {
+    background-color: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 4px;
+}
+
+.notesBackground {
+    background-gradient-start: rgba(0, 0, 0, 0.3);
+    background-gradient-end: rgba(0, 0, 0, 0.9);
+    background-gradient-direction: vertical;
+}
+
+/* Fejléc és gombok **********************************************************/
+
+.notesTitleButton {
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.noteHeaderStyle {
+    padding: 4px;
+    spacing: 4px;
+}
+
+.notesCircleButton {
+    border-width: 1px;
+    border-style: solid;
+    border-color: black;
+    border-radius: 50% !important; 
+    height: 28px;
+    width: 28px;
+}
+
+.notesHeaderboxButton {
+    border-style: solid;
+    border-color: grey;
+}
+
+
+.notesCircleButton:hover, 
+.notesCircleButton:active {
+    border-width: 2px;
+    border-color: black;
+    border-radius: 50% !important; 
+    background-color: rgba(0, 0, 0, 0.15) !important;;
+}
