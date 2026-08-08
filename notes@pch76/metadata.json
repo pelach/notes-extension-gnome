@@ -9,7 +9,7 @@
 		"50"
 	],
 	"url": "https://github.com/pelach/notes-extension-gnome",
-	"uuid": "notes@pch76.hu",
+	"uuid": "notes@pch76",
 	"settings-schema": "org.gnome.shell.extensions.notes-extension-pch",
 	"version": 0
 }

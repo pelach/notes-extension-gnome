@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="notes-extension">
-  <schema id="org.gnome.shell.extensions.notes-extension"
-          path="/org/gnome/shell/extensions/notes-extension/">
+  <schema id="org.gnome.shell.extensions.notes-extension-pch"
+          path="/org/gnome/shell/extensions/notes-extension-pch/">
 
     <key type="b" name="auto-focus">
       <default>false</default>
