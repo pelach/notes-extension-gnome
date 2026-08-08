@@ -8,7 +8,8 @@ A GNOME Shell extension providing customizable sticky notes.
 
 ## Credits & Acknowledgments
 
-This project is a modern fork and rewrite based on the original **Notes** extension idea by **Romain F. T.** (`notes@maestroschan.fr`).
+* Special thanks to **Gemini (Google AI)** for providing invaluable assistance, debugging, and code refactoring throughout the development of this extension.
+* This project is a modern fork and rewrite based on the original **Notes** extension idea by **Romain F. T.** (`notes@maestroschan.fr`).
 
 ---
 
