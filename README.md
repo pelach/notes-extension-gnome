@@ -1,6 +1,6 @@
 # Simple notes extension
 
-A GNOME Shell extension providing customizable sticky notes.
+A GNOME Shell extension providing simple notes.
 
 ![](./notes@pch76/screenshot/picture.png)
 
