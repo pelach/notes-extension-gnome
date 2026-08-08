@@ -3,18 +3,17 @@ import St from 'gi://St';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Pango from 'gi://Pango';
+import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Menus from './menus.js';
-import * as Dialog from './dialog.js';
 import { PATH, SETTINGS, NOTES_MANAGER } from './extension.js';
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
-const EDGE_MARGIN = 8; // Szél-érzékelés pixelekben az átméretezéshez
+const EDGE_MARGIN = 8;
 
-// Windows Sticky Notes ihletésű 100% tömör pasztell színpaletta (RGB)
 export const PASTEL_COLORS = {
     'yellow':   { name: "Yellow", rgb: '255,247,209', hex: '#fff7d1' },
     'green':    { name: "Green",  rgb: '226,240,203', hex: '#e2f0cb' },
@@ -64,12 +63,12 @@ export class NoteBox {
             this.actor.set_size(this.actor.width, this.actor.height);
         }
 
-        // 1. FEJLÉC
+        // 1. FEJLÉC (Helyét megtartó, áttetszőséggel vezérelt)
         this._buildHeaderbar();
 
         // 2. GÖRGETHETŐ SZÖVEGMEZŐ
         this._scrollView = new St.ScrollView({
-            overlay_scrollbars: false, // Látható görgetősáv
+            overlay_scrollbars: false,
             x_expand: true,
             y_expand: true,
             clip_to_allocation: true,
@@ -103,21 +102,22 @@ export class NoteBox {
             this._ensureCursorVisible(clutterText);
         });
 
-        // Cetlire kattintás aktiválja és előrehozza a réteget
+        // Kattintás a cetlire -> Aktívvá tétel
         this.actor.connect('button-press-event', () => {
-            if (NOTES_MANAGER) {
-                NOTES_MANAGER.setActiveNote(this);
-            }
-            this._redraw();
+            this._setActive(true);
             return Clutter.EVENT_PROPAGATE;
         });
 
-        // Az St.BoxLayout megvalósítja az St.Scrollable-t!
+        this.noteEntry.connect('button-press-event', () => {
+            this._setActive(true);
+            return Clutter.EVENT_PROPAGATE;
+        });
+
         this._entryBox = new St.BoxLayout({
             vertical: true,
             reactive: true,
             x_expand: true,
-            y_expand: false, // LÉNYEGES: y_expand: false -> engedi a magasságot megnőni!
+            y_expand: false,
         });
 
         this._entryBox.add_child(this.noteEntry);
@@ -126,8 +126,6 @@ export class NoteBox {
 
         // Átméretezés és Mozgatás inicializálása
         this._initDragAndResize();
-
-        this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 
         // Egérgörgő bekötése
         this.noteEntry.connect('scroll-event', (actor, event) => {
@@ -158,42 +156,62 @@ export class NoteBox {
     }
 
     _setActive(active) {
-        if (active) {
-            this._redraw();
-            this.noteEntry.grab_key_focus();
-        }
-
-        if (this._isActive === active && !active) return;
+        if (this._isActive === active) return;
         this._isActive = active;
 
+        // Fejléc áttetszőségének állítása (layout-hely megmarad)
         if (this._buttonsBox) {
-            this._buttonsBox.visible = active;
+            this._buttonsBox.opacity = active ? 255 : 0;
+            this._buttonsBox.reactive = active;
         }
 
         if (active) {
+            this._redraw();
+            if (NOTES_MANAGER) {
+                NOTES_MANAGER.setActiveNote(this);
+            }
+            this.noteEntry.grab_key_focus();
+
+            // 1. KATTINTÁS CSETLIN KÍVÜLRE (Asztal, Tálca, Üres terület)
             if (!this._stageClickId) {
                 this._stageClickId = global.stage.connect('captured-event', (stage, event) => {
                     if (!this.actor) return Clutter.EVENT_PROPAGATE;
 
                     if (event.type() === Clutter.EventType.BUTTON_PRESS) {
                         let target = event.get_source();
-                        if (target && !this.actor.contains(target)) {
+                        // Ha a kattintott elem NINCS a cetlin belül:
+                        if (!target || !this.actor.contains(target)) {
                             this._setActive(false);
                         }
                     }
                     return Clutter.EVENT_PROPAGATE;
                 });
             }
-        } else {
-            // Elvesszük a fókuszt a cetlitől és a benne lévő clutterText-től is
-            let currentFocus = global.stage.get_key_focus();
-            if (currentFocus && (currentFocus === this.noteEntry || this.actor.contains(currentFocus))) {
-                global.stage.set_key_focus(null);
-            }
 
+            // 2. ÁTKATTINTÁS MÁSIK ALKALMAZÁS ABLAKÁRA (Chrome, Terminál, stb.)
+            if (!this._focusWindowId) {
+                this._focusWindowId = global.display.connect('notify::focus-window', () => {
+                    if (global.display.focus_window) {
+                        this._setActive(false);
+                    }
+                });
+            }
+        } else {
+            // INAKTÍVÁ VÁLÁSKOR LEKAPCSOLÓDUNK A FIGYELŐKRŐL
             if (this._stageClickId) {
                 global.stage.disconnect(this._stageClickId);
                 this._stageClickId = null;
+            }
+
+            if (this._focusWindowId) {
+                global.display.disconnect(this._focusWindowId);
+                this._focusWindowId = null;
+            }
+
+            // Elvesszük a billentyűzet-fókuszt a Stage-től
+            let currentFocus = global.stage.get_key_focus();
+            if (currentFocus && (currentFocus === this.noteEntry || this.actor.contains(currentFocus))) {
+                global.stage.set_key_focus(null);
             }
         }
     }
@@ -203,13 +221,24 @@ export class NoteBox {
             style_class: 'noteHeaderStyle',
             x_expand: true,
             y_expand: false,
-            visible: false,
+            height: 34,
+            visible: true,
+            opacity: 0,
+            reactive: false,
         });
+
+        // Segédfüggvény: megakadályozza a gombok oválissá torzulását
+        let formatRoundButton = (btn) => {
+            btn.actor.x_expand = false;
+            btn.actor.y_expand = false;
+            btn.actor.x_align = Clutter.ActorAlign.CENTER;
+            btn.actor.y_align = Clutter.ActorAlign.CENTER;
+            btn.actor.set_size(26, 26);
+        };
 
         // BAL OLDAL: Új cetli (+)
         let btnNew = new Menus.NoteRoundButton(this, 'list-add-symbolic', _("New"));
-        btnNew.actor.x_expand = false;
-        btnNew.actor.y_expand = false;
+        formatRoundButton(btnNew);
         btnNew.actor.connect('clicked', this._createNote.bind(this));
         this._buttonsBox.add_child(btnNew.actor);
 
@@ -223,16 +252,14 @@ export class NoteBox {
 
         // JOBB OLDAL: Színválasztó (...)
         let btnOptions = new Menus.NoteRoundButton(this, 'view-more-symbolic', _("Colors"));
-        btnOptions.actor.x_expand = false;
-        btnOptions.actor.y_expand = false;
+        formatRoundButton(btnOptions);
         btnOptions.addMenu();
         this._buttonsBox.add_child(btnOptions.actor);
 
         // JOBB OLDAL: Bezárás (X)
         let btnClose = new Menus.NoteRoundButton(this, 'window-close-symbolic', _("Close"));
-        btnClose.actor.x_expand = false;
-        btnClose.actor.y_expand = false;
-        btnClose.actor.connect('clicked', this._openDeleteDialog.bind(this));
+        formatRoundButton(btnClose);
+        btnClose.actor.connect('clicked', this._deleteNoteObject.bind(this));
         this._buttonsBox.add_child(btnClose.actor);
 
         // Mozgatási események
@@ -269,95 +296,74 @@ export class NoteBox {
     }
 
     _initDragAndResize() {
-        this.actor.connect('button-press-event', (actor, event) => {
-            let edge = this._getResizeEdge(event);
-            if (edge) {
-                this._isResizing = true;
-                this._resizeEdge = edge;
-                this._onPressCommon(event);
-                
-                [this._startWidth, this._startHeight] = this.actor.get_size();
-                [this._startXPos, this._startYPos] = this.actor.get_transformed_position();
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
+        // captured-event: elkapja a méretezési és mozgatási eseményeket
+        this.actor.connect('captured-event', (actor, event) => {
+            let eventType = event.type();
 
-        this.actor.connect('motion-event', (actor, event) => {
-            if (this._isResizing) {
-                let [px, py] = event.get_coords();
-                let dx = px - this.grabX;
-                let dy = py - this.grabY;
+            if (eventType === Clutter.EventType.MOTION) {
+                if (this._isResizing) {
+                    let [px, py] = event.get_coords();
+                    let dx = px - this.grabX;
+                    let dy = py - this.grabY;
 
-                let newWidth = this._startWidth;
-                let newHeight = this._startHeight;
-                let newX = this._startXPos;
-                let newY = this._startYPos;
+                    let newWidth = this._startWidth;
+                    let newHeight = this._startHeight;
+                    let newX = this._startXPos;
+                    let newY = this._startYPos;
 
-                if (this._resizeEdge.includes('E')) {
-                    newWidth = Math.max(MIN_WIDTH, this._startWidth + dx);
-                } else if (this._resizeEdge.includes('W')) {
-                    let possibleWidth = this._startWidth - dx;
-                    if (possibleWidth >= MIN_WIDTH) {
-                        newWidth = possibleWidth;
-                        newX = this._startXPos + dx;
+                    if (this._resizeEdge.includes('E')) {
+                        newWidth = Math.max(MIN_WIDTH, this._startWidth + dx);
+                    } else if (this._resizeEdge.includes('W')) {
+                        let possibleWidth = this._startWidth - dx;
+                        if (possibleWidth >= MIN_WIDTH) {
+                            newWidth = possibleWidth;
+                            newX = this._startXPos + dx;
+                        }
                     }
-                }
 
-                if (this._resizeEdge.includes('S')) {
-                    newHeight = Math.max(MIN_HEIGHT, this._startHeight + dy);
-                } else if (this._resizeEdge.includes('N')) {
-                    let possibleHeight = this._startHeight - dy;
-                    if (possibleHeight >= MIN_HEIGHT) {
-                        newHeight = possibleHeight;
-                        newY = this._startYPos + dy;
+                    if (this._resizeEdge.includes('S')) {
+                        newHeight = Math.max(MIN_HEIGHT, this._startHeight + dy);
+                    } else if (this._resizeEdge.includes('N')) {
+                        let possibleHeight = this._startHeight - dy;
+                        if (possibleHeight >= MIN_HEIGHT) {
+                            newHeight = possibleHeight;
+                            newY = this._startYPos + dy;
+                        }
                     }
+
+                    this.actor.set_size(newWidth, newHeight);
+                    this._x = newX;
+                    this._y = newY;
+                    this._setNotePosition();
+                    return Clutter.EVENT_STOP;
                 }
+            } else if (eventType === Clutter.EventType.BUTTON_PRESS) {
+                let edge = this._getResizeEdge(event);
+                if (edge) {
+                    this._isResizing = true;
+                    this._resizeEdge = edge;
+                    this._onPressCommon(event);
 
-                this.actor.set_size(newWidth, newHeight);
-                this._x = newX;
-                this._y = newY;
-                this._setNotePosition();
-                return Clutter.EVENT_STOP;
-            }
-            return Clutter.EVENT_PROPAGATE;
-        });
-
-        this.actor.connect('button-release-event', () => {
-            if (this._isResizing) {
-                this._isResizing = false;
-                this._resizeEdge = null;
-                this.onlySave();
-                return Clutter.EVENT_STOP;
+                    [this._startWidth, this._startHeight] = this.actor.get_size();
+                    [this._startXPos, this._startYPos] = this.actor.get_transformed_position();
+                    return Clutter.EVENT_STOP;
+                }
+            } else if (eventType === Clutter.EventType.BUTTON_RELEASE) {
+                if (this._isResizing) {
+                    this._isResizing = false;
+                    this._resizeEdge = null;
+                    this.onlySave();
+                    return Clutter.EVENT_STOP;
+                }
             }
             return Clutter.EVENT_PROPAGATE;
         });
     }
 
-    _openDeleteDialog () {
-        let noteText = this.noteEntry.get_text();
-        let lines = noteText.split("\n");
-        if(lines.length > 10) {
-            noteText = lines[0] + "\n" + lines[1] + "\n" + lines[2] + "\n[...]\n";
-            noteText += lines[lines.length - 2] + "\n" + lines[lines.length - 1];
-        }
-        if(noteText === "") {
-            noteText = "[" + _("Empty note") + "]";
-        }
-
-        let description_label = new St.Label({
-            style: 'padding-top: 16px;',
-            x_align: Clutter.ActorAlign.CENTER,
-            text: noteText,
-        });
-
-        let dialog = new Dialog.CustomModalDialog(
-            _("Delete this note?"),
-            description_label,
-            _("Delete"),
-            this._deleteNoteObject.bind(this)
-        );
-        dialog.open();
+    _setCursorForEdge(edge) {
+        // A Mutter g_assert összeomlásának elkerülése érdekében
+        // nem hívjuk meg a problémás global.display.set_cursor API-t.
+        return;
     }
 
     _initStyle () {
@@ -450,13 +456,6 @@ export class NoteBox {
         this.noteEntry.style = style;
     }
 
-    _getKeyFocus () {
-        if (this.entry_is_visible) {
-            this.noteEntry.grab_key_focus();
-        }
-        this._redraw();
-    }
-
     _redraw () {
         if (this.actor && this.actor.get_parent()) {
             this.actor.get_parent().set_child_above_sibling(this.actor, null);
@@ -485,7 +484,6 @@ export class NoteBox {
     _updateEntryHeight() {
         let clutterText = this.noteEntry.get_clutter_text();
         let [, prefHeight] = clutterText.get_preferred_height(-1);
-        // Frissítjük az St.Entry magasságát, hogy a ScrollView érzékelje a túlcsordulást
         this.noteEntry.set_height(Math.max(30, prefHeight + 10));
     }
 
@@ -592,7 +590,6 @@ export class NoteBox {
         let content = stringFromArray(contents);
 
         this.noteEntry.set_text(content);
-
         this._updateEntryHeight();
     }
 
@@ -676,10 +673,8 @@ export class NoteBox {
     }
 
     destroy () {
-        if (this._stageClickId) {
-            global.stage.disconnect(this._stageClickId);
-            this._stageClickId = null;
-        }
+        // Megsemmisítés előtt biztonságosan lekapcsoljuk a fókuszfigyelőket
+        this._setActive(false);
 
         if (this.actor) {
             this.actor.destroy_all_children();
