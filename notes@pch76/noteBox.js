@@ -4,12 +4,11 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Pango from 'gi://Pango';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import * as GrabHelper from 'resource:///org/gnome/shell/ui/grabHelper.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Menus from './menus.js';
 import * as Dialog from './dialog.js';
-import { PATH, SETTINGS, AUTO_FOCUS, NOTES_MANAGER } from './extension.js';
+import { PATH, SETTINGS, NOTES_MANAGER } from './extension.js';
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
@@ -55,20 +54,27 @@ export class NoteBox {
             min_width: MIN_WIDTH,
             style_class: 'noteBoxStyle',
             track_hover: true,
+            clip_to_allocation: true,
         });
 
         this._fontColor = '';
         this._loadState();
 
-        // 1. FEJLÉC (Alapértelmezetten rejtve)
+        if (this.actor.width > 0 && this.actor.height > 0) {
+            this.actor.set_size(this.actor.width, this.actor.height);
+        }
+
+        // 1. FEJLÉC
         this._buildHeaderbar();
 
         // 2. GÖRGETHETŐ SZÖVEGMEZŐ
         this._scrollView = new St.ScrollView({
-            overlay_scrollbars: true,
+            overlay_scrollbars: false, 
             x_expand: true,
             y_expand: true,
             clip_to_allocation: true,
+            hscrollbar_policy: St.PolicyType.NEVER,    
+            vscrollbar_policy: St.PolicyType.AUTOMATIC,
         });
 
         this.noteEntry = new St.Entry({
@@ -86,11 +92,19 @@ export class NoteBox {
         clutterText.set_activatable(false);
         clutterText.set_line_wrap(true);
         clutterText.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
-        clutterText.set_use_markup(true); // Pango Markup engedélyezése formázáshoz!
+        clutterText.set_use_markup(false); // Sima szöveg (a < és > jelek nem törnek össze)
 
-        // Fókusz események bekötése (Aktiválja/rejti a fejlécet és láblécet)
+        clutterText.connect('cursor-changed', () => {
+            this._ensureCursorVisible(clutterText);
+        });
+
+        // Cetlire kattintás aktiválja és előrehozza a réteget
         this.actor.connect('button-press-event', () => {
-            NOTES_MANAGER.setActiveNote(this);
+            if (NOTES_MANAGER) {
+                NOTES_MANAGER.setActiveNote(this);
+            }
+            this._redraw();
+            return Clutter.EVENT_PROPAGATE;
         });
 
         this._entryBox = new St.BoxLayout({
@@ -110,20 +124,27 @@ export class NoteBox {
         this._scrollView.set_child(this._entryBox);
         this.actor.add_child(this._scrollView);
 
-        // 3. LÁBLÉC (Formázó gombok)
-        this._buildFooterbar();
-
-        // Egér- és keretésemények az átméretezéshez
+        // Átméretezés és Mozgatás inicializálása
         this._initDragAndResize();
 
-        this._grabHelper = new GrabHelper.GrabHelper(this.noteEntry);
-        if (AUTO_FOCUS) {
-            this.noteEntry.connect('enter-event', this._getKeyFocus.bind(this));
-            this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
-        } else {
-            this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
-            this.noteEntry.connect('leave-event', this._leaveKeyFocus.bind(this));
-        }
+        this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
+
+        this.noteEntry.connect('scroll-event', (actor, event) => {
+            let vadj = this._scrollView.vadjustment;
+            if (!vadj) return Clutter.EVENT_PROPAGATE;
+
+            let direction = event.get_scroll_direction();
+
+            if (direction === Clutter.ScrollDirection.DOWN) {
+                vadj.value = Math.min(vadj.upper - vadj.page_size, vadj.value + 35);
+            } else if (direction === Clutter.ScrollDirection.UP) {
+                vadj.value = Math.max(vadj.lower, vadj.value - 35);
+            } else if (direction === Clutter.ScrollDirection.SMOOTH) {
+                let [dx, dy] = event.get_scroll_delta();
+                vadj.value = Math.min(Math.max(vadj.lower, vadj.value + dy * 20), vadj.upper - vadj.page_size);
+            }
+            return Clutter.EVENT_STOP;
+        });
 
         this.loadIntoCorrectLayer();
         this._setNotePosition();
@@ -135,25 +156,22 @@ export class NoteBox {
     }
 
     _setActive(active) {
-        if (this._isActive === active) return;
         this._isActive = active;
 
-        if (this._buttonsBox) this._buttonsBox.visible = active;
-        if (this._footerBox) this._footerBox.visible = active;
+        if (this._buttonsBox) {
+            this._buttonsBox.visible = active;
+        }
 
         if (active) {
+            this._redraw();
             this.noteEntry.grab_key_focus();
 
             if (!this._stageClickId) {
-                // 'captured-event': EZ A KULCS! Döntő fázis, mielőtt bárki elszívná a kattintást!
                 this._stageClickId = global.stage.connect('captured-event', (stage, event) => {
                     if (!this.actor) return Clutter.EVENT_PROPAGATE;
 
-                    // Csak egérkattintáskor (BUTTON_PRESS) vizsgálódunk
                     if (event.type() === Clutter.EventType.BUTTON_PRESS) {
                         let target = event.get_source();
-
-                        // Ha a kattintott elem LÉTEZIK és NEM a cetlin belül van:
                         if (target && !this.actor.contains(target)) {
                             this._setActive(false);
                         }
@@ -162,20 +180,24 @@ export class NoteBox {
                 });
             }
         } else {
+            // LÉNYEGES: Megfosztjuk a szövegmezőt a billentyűzet-fókusztól!
+            if (global.stage.get_key_focus() === this.noteEntry) {
+                global.stage.set_key_focus(null);
+            }
+
             if (this._stageClickId) {
                 global.stage.disconnect(this._stageClickId);
                 this._stageClickId = null;
             }
         }
-    }   
-    
+    }
 
     _buildHeaderbar () {
         this._buttonsBox = new St.BoxLayout({
             style_class: 'noteHeaderStyle',
             x_expand: true,
             y_expand: false,
-            visible: false, // Inaktívként rejtve indul
+            visible: false,
         });
 
         // BAL OLDAL: Új cetli (+)
@@ -185,7 +207,7 @@ export class NoteBox {
         btnNew.actor.connect('clicked', this._createNote.bind(this));
         this._buttonsBox.add_child(btnNew.actor);
 
-        // KÖZÉP: Címsor / Húzható mozgatófelület
+        // KÖZÉP: Húzható mozgatófelület
         this.moveBox = new St.Button({
             x_expand: true,
             y_expand: true,
@@ -197,10 +219,10 @@ export class NoteBox {
         let btnOptions = new Menus.NoteRoundButton(this, 'view-more-symbolic', _("Colors"));
         btnOptions.actor.x_expand = false;
         btnOptions.actor.y_expand = false;
-        btnOptions.addMenu(); // A menus.js intézi a menüt!
+        btnOptions.addMenu();
         this._buttonsBox.add_child(btnOptions.actor);
 
-        // JOBB OLDAL: Bezárás / Törlés (X)
+        // JOBB OLDAL: Bezárás (X)
         let btnClose = new Menus.NoteRoundButton(this, 'window-close-symbolic', _("Close"));
         btnClose.actor.x_expand = false;
         btnClose.actor.y_expand = false;
@@ -213,74 +235,6 @@ export class NoteBox {
         this.moveBox.connect('button-release-event', this._onRelease.bind(this));
 
         this.actor.add_child(this._buttonsBox);
-    }
-
-    _buildColorMenu(btnOptions) {
-        // 1. Létrehozzuk a menüt a gombban
-        btnOptions.addMenu();
-        
-        // 2. Elkérjük a gombra rögzített menu objektumot
-        let menu = btnOptions.menu;
-
-        if (!menu) return;
-
-        // 3. Hozzáadjuk a színeket
-        Object.keys(PASTEL_COLORS).forEach(key => {
-            let color = PASTEL_COLORS[key];
-            menu.addAction(_(color.name), () => {
-                let [r, g, b] = color.rgb.split(',').map(Number);
-                this.applyColorAndSave(r, g, b);
-            });
-        });
-    }
-
-    _buildFooterbar() {
-        this._footerBox = new St.BoxLayout({
-            style_class: 'noteFooterStyle',
-            x_expand: true,
-            y_expand: false,
-            visible: false, // Inaktívként rejtve indul
-        });
-
-        const formatTools = [
-            { icon: 'format-text-bold-symbolic', tooltip: _("Bold"), tag: 'b' },
-            { icon: 'format-text-italic-symbolic', tooltip: _("Italic"), tag: 'i' },
-            { icon: 'format-text-underline-symbolic', tooltip: _("Underline"), tag: 'u' },
-            { icon: 'format-text-strikethrough-symbolic', tooltip: _("Strikethrough"), tag: 's' },
-        ];
-
-        formatTools.forEach(tool => {
-            let btn = new Menus.NoteRoundButton(this, tool.icon, tool.tooltip);
-            btn.actor.x_expand = false;
-            btn.actor.y_expand = false;
-            btn.actor.connect('clicked', () => {
-                this._formatSelection(`<${tool.tag}>`, `</${tool.tag}>`);
-            });
-            this._footerBox.add_child(btn.actor);
-        });
-
-        this.actor.add_child(this._footerBox);
-    }
-
-    _formatSelection(startTag, endTag) {
-        let clutterText = this.noteEntry.get_clutter_text();
-        let selection = clutterText.get_selection();
-        
-        if (!selection || selection === '') return;
-
-        let cursorPos = clutterText.get_cursor_position();
-        let selectionBound = clutterText.get_selection_bound();
-
-        let start = Math.min(cursorPos, selectionBound);
-        let end = Math.max(cursorPos, selectionBound);
-
-        let fullText = clutterText.get_text();
-        let selectedText = fullText.substring(start, end);
-        let formattedText = `${startTag}${selectedText}${endTag}`;
-
-        clutterText.delete_text(start, end);
-        clutterText.insert_text(formattedText, start);
-        this.onlySave();
     }
 
     _getResizeEdge(event) {
@@ -462,7 +416,6 @@ export class NoteBox {
     _applyActorStyle () {
         if (this.actor == null) { return; }
         
-        // 100%-os tömör (opak) pasztell háttérszín
         let temp = `background-color: rgb(${this.customColor});`;
         if (this._fontColor != '') {
             temp += `color: ${this._fontColor};`;
@@ -493,19 +446,34 @@ export class NoteBox {
 
     _getKeyFocus () {
         if (this.entry_is_visible) {
-            this._grabHelper.grab({ actor: this.noteEntry });
             this.noteEntry.grab_key_focus();
         }
         this._redraw();
     }
 
-    _leaveKeyFocus () {
-        this._grabHelper.ungrab({ actor: this.noteEntry });
+    _redraw () {
+        if (this.actor && this.actor.get_parent()) {
+            this.actor.get_parent().set_child_above_sibling(this.actor, null);
+        }
+        this.onlySave();
     }
 
-    _redraw () {
-        this.actor.get_parent().set_child_above_sibling(this.actor, null);
-        this.onlySave();
+    _ensureCursorVisible(clutterText) {
+        let vadj = this._scrollView.vadjustment;
+        if (!vadj) return;
+
+        let cursorRect = clutterText.get_cursor_rect();
+        let [, y] = clutterText.get_transformed_position();
+        let [, sy] = this._scrollView.get_transformed_position();
+
+        let cursorY = (y - sy) + cursorRect.y;
+        let scrollViewHeight = this._scrollView.get_height();
+
+        if (cursorY + cursorRect.height > scrollViewHeight) {
+            vadj.value += (cursorY + cursorRect.height - scrollViewHeight) + 15;
+        } else if (cursorY < 0) {
+            vadj.value += cursorY - 15;
+        }
     }
 
     _setNotePosition () {
@@ -529,6 +497,9 @@ export class NoteBox {
     }
 
     _onPressCommon (event) {
+        if (NOTES_MANAGER) {
+            NOTES_MANAGER.setActiveNote(this);
+        }
         this._redraw();
         this.grabX = Math.floor(event.get_coords()[0]);
         this.grabY = Math.floor(event.get_coords()[1]);
@@ -585,7 +556,6 @@ export class NoteBox {
         b = Math.min(Math.max(0, b), 255);
         this.customColor = r.toString() + ',' + g.toString() + ',' + b.toString();
         
-        // Sötét vs világos háttér szerinti betűszín választás
         if (r + g + b > 350) {
             this._fontColor = '#000000';
         } else {
@@ -691,7 +661,6 @@ export class NoteBox {
     }
 
     destroy () {
-        // Töröljük a globális kattintásfigyelőt a cetli megsemmisítése előtt
         if (this._stageClickId) {
             global.stage.disconnect(this._stageClickId);
             this._stageClickId = null;

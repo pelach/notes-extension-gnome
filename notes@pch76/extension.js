@@ -16,9 +16,9 @@ let PATH;
 let NOTES_MANAGER = null;
 let SETTINGS = null;
 let LAYER_SETTING = '';
-let AUTO_FOCUS = false;
 
-export { PATH, NOTES_MANAGER, SETTINGS, LAYER_SETTING, AUTO_FOCUS };
+
+export { PATH, NOTES_MANAGER, SETTINGS, LAYER_SETTING };
 
 export default class NotesExtension extends Extension {
     enable() {
@@ -34,8 +34,6 @@ export default class NotesExtension extends Extension {
         LAYER_SETTING = '';
 
         SETTINGS = this.getSettings();
-        AUTO_FOCUS = SETTINGS.get_boolean('auto-focus');
-
         NOTES_MANAGER = new NotesManager(this);
     }
 
@@ -235,10 +233,6 @@ class NotesManager {
             'changed::notes-kb-shortcut',
             this._updateShortcut.bind(this)
         );
-        this._settingsSignals['auto-focus'] = SETTINGS.connect(
-            'changed::auto-focus',
-            this._updateFocusSetting.bind(this)
-        );
     }
 
     _updateShortcut () {
@@ -246,13 +240,6 @@ class NotesManager {
             Main.wm.removeKeybinding('notes-kb-shortcut');
         }
         this._bindKeyboardShortcut();
-    }
-
-    _updateFocusSetting () {
-        Main.notify(
-            _("Notes"),
-            _("Restart the extension to apply the changes")
-        );
     }
 
     _updateIconVisibility () {
@@ -293,7 +280,6 @@ class NotesManager {
             SETTINGS.disconnect(this._settingsSignals['hide-icon']);
             SETTINGS.disconnect(this._settingsSignals['kb-shortcut-1']);
             SETTINGS.disconnect(this._settingsSignals['kb-shortcut-2']);
-            SETTINGS.disconnect(this._settingsSignals['auto-focus']);
         }
 
         this._allNotes.forEach(function (n) {

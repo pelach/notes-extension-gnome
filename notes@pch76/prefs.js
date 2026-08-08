@@ -47,17 +47,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
         });
         groupPosition.add(positionRow);
 
-        // Automatikus fókusz (SwitchRow)
-        const focusRow = new Adw.SwitchRow({
-            title: _('Automatic focus'),
-            subtitle: _('Focus the note automatically when hovered'),
-            active: this._settings.get_boolean('auto-focus'),
-        });
-        focusRow.connect('notify::active', () => {
-            this._settings.set_boolean('auto-focus', focusRow.active);
-        });
-        groupPosition.add(focusRow);
-
         // Ikon elrejtése (SwitchRow)
         const hideIconRow = new Adw.SwitchRow({
             title: _('Hide top panel icon'),

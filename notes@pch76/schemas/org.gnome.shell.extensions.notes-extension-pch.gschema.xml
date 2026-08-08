@@ -3,14 +3,6 @@
   <schema id="org.gnome.shell.extensions.notes-extension-pch"
           path="/org/gnome/shell/extensions/notes-extension-pch/">
 
-    <key type="b" name="auto-focus">
-      <default>false</default>
-      <summary>Automatic focus</summary>
-      <description>
-        If notes should automatically take the keyboard focus when hovered by
-        the cursor. Otherwise a click is needed.
-      </description>
-    </key>
 
     <key type="s" name="layout-position">
       <default>"above-all"</default>
