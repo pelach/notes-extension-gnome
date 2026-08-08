@@ -2,7 +2,6 @@
     padding: 0px;
     margin: 0px;
     border-radius: 8px;
-    /* Lágy árnyék az asztaltól való elváláshoz */
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -10,8 +9,6 @@
 .noteBoxStyle:focus {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
 }
-
-/* Szövegbeviteli mező letisztítása ******************************************/
 
 .notesTextField,
 .notesTextField:focus,
@@ -22,8 +19,6 @@
     box-shadow: none !important;
     padding: 4px;
 }
-
-/* Fejléc, Lábléc és Címsor **************************************************/
 
 .noteHeaderStyle,
 .noteFooterStyle {
@@ -37,22 +32,20 @@
     box-shadow: none !important;
 }
 
-/* Kerek gombok (Fejlécben és Láblécben egyaránt) ***************************/
-
 .notesCircleButton,
 .notesHeaderboxButton {
     border: none !important;
-    border-radius: 9999px !important;          /* Garantáltan kerek gombok */
+    border-radius: 9999px !important;          
     width: 28px !important;
     height: 28px !important;
     min-width: 28px !important;
     min-height: 28px !important;
     padding: 0px !important;
     margin: 2px !important;
-    background-color: rgba(0, 0, 0, 0.08) !important; /* Finom hátterű kerek gombok */
+    background-color: rgba(0, 0, 0, 0.08) !important; 
 }
 
-/* Egér fölévitelekor (Hover) */
+
 .notesCircleButton:hover,
 .notesCircleButton:active,
 .notesHeaderboxButton:hover,

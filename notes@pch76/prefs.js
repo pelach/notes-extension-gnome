@@ -11,22 +11,17 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         this._settings = this.getSettings();
 
-        // ---------------------------------------------------------------------
-        // 1. BEÁLLÍTÁSOK OLDAL (Settings)
-        // ---------------------------------------------------------------------
         const pageSettings = new Adw.PreferencesPage({
             title: _('Settings'),
             icon_name: 'emblem-system-symbolic',
         });
         window.add(pageSettings);
 
-        // --- Elhelyezkedés csoport ---
         const groupPosition = new Adw.PreferencesGroup({
             title: _('Position & Behavior'),
         });
         pageSettings.add(groupPosition);
 
-        // Pozíció kiválasztó (ComboRow)
         const positionRow = new Adw.ComboRow({
             title: _('Position of notes'),
             subtitle: _('Choose how notes are layered on the screen'),
@@ -50,7 +45,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
         });
         groupPosition.add(positionRow);
 
-        // Ikon elrejtése (SwitchRow)
         const hideIconRow = new Adw.SwitchRow({
             title: _('Hide top panel icon'),
             active: this._settings.get_boolean('hide-icon'),
@@ -60,7 +54,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
         });
         groupPosition.add(hideIconRow);
 
-        // --- Billentyűkombináció csoport ---
         const groupShortcut = new Adw.PreferencesGroup({
             title: _('Keyboard Shortcut'),
         });
@@ -79,7 +72,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
             sensitive: shortcutSwitchRow.active,
         });
 
-        // Mentés gomb az entry-ben
         const applyBtn = new Gtk.Button({
             label: _('Apply'),
             valign: Gtk.Align.CENTER,
@@ -97,7 +89,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
             shortcutEntryRow.sensitive = active;
         });
 
-        // --- Színek csoport (Pasztell opciók) ---
         const groupAppearance = new Adw.PreferencesGroup({
             title: _('Appearance'),
         });
@@ -118,7 +109,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
             model: Gtk.StringList.new(PASTEL_OPTIONS.map(c => c.name)),
         });
 
-        // Betöltés a meglévő first-note-rgb beállításból
         const colorArray = this._settings.get_strv('first-note-rgb');
         let selectedIdx = 0;
         if (colorArray && colorArray.length >= 3) {
@@ -142,10 +132,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
 
         groupAppearance.add(colorRow);
 
-
-        // ---------------------------------------------------------------------
-        // 2. MENTÉS / ADATOK OLDAL (Backup)
-        // ---------------------------------------------------------------------
         const pageBackup = new Adw.PreferencesPage({
             title: _('Backup'),
             icon_name: 'folder-saved-search-symbolic',
@@ -176,10 +162,6 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
         openFolderRow.activatable_widget = openFolderBtn;
         groupBackup.add(openFolderRow);
 
-
-        // ---------------------------------------------------------------------
-        // 3. SÚGÓ & INFO OLDAL (Help & About)
-        // ---------------------------------------------------------------------
         const pageHelp = new Adw.PreferencesPage({
             title: _('Help & About'),
             icon_name: 'help-about-symbolic',

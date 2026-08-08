@@ -65,10 +65,8 @@ export class NoteBox {
             this.actor.set_size(this.actor.width, this.actor.height);
         }
 
-        // 1. FEJLÉC (Helyét megtartó, áttetszőséggel vezérelt)
         this._buildHeaderbar();
 
-        // 2. GÖRGETHETŐ SZÖVEGMEZŐ
         this._scrollView = new St.ScrollView({
             overlay_scrollbars: false,
             x_expand: true,
@@ -126,10 +124,8 @@ export class NoteBox {
         this._scrollView.set_child(this._entryBox);
         this.actor.add_child(this._scrollView);
 
-        // Átméretezés és Mozgatás inicializálása
         this._initDragAndResize();
 
-        // Egérgörgő bekötése
         this.noteEntry.connect('scroll-event', (actor, event) => {
             let vadj = this._scrollView.vadjustment;
             if (!vadj) return Clutter.EVENT_PROPAGATE;
@@ -161,7 +157,6 @@ export class NoteBox {
         if (this._isActive === active) return;
         this._isActive = active;
 
-        // Fejléc áttetszőségének állítása (layout-hely megmarad)
         if (this._buttonsBox) {
             this._buttonsBox.opacity = active ? 255 : 0;
             this._buttonsBox.reactive = active;
@@ -174,7 +169,6 @@ export class NoteBox {
             }
             this.noteEntry.grab_key_focus();
 
-            // 1. KATTINTÁS CSETLIN KÍVÜLRE (Asztal, Tálca, Üres terület)
             if (!this._stageClickId) {
                 this._stageClickId = global.stage.connect('captured-event', (stage, event) => {
                     if (!this.actor) return Clutter.EVENT_PROPAGATE;
@@ -190,7 +184,6 @@ export class NoteBox {
                 });
             }
 
-            // 2. ÁTKATTINTÁS MÁSIK ALKALMAZÁS ABLAKÁRA (Chrome, Terminál, stb.)
             if (!this._focusWindowId) {
                 this._focusWindowId = global.display.connect('notify::focus-window', () => {
                     if (global.display.focus_window) {
@@ -199,7 +192,6 @@ export class NoteBox {
                 });
             }
         } else {
-            // INAKTÍVÁ VÁLÁSKOR LEKAPCSOLÓDUNK A FIGYELŐKRŐL
             if (this._stageClickId) {
                 global.stage.disconnect(this._stageClickId);
                 this._stageClickId = null;
@@ -210,7 +202,6 @@ export class NoteBox {
                 this._focusWindowId = null;
             }
 
-            // Elvesszük a billentyűzet-fókuszt a Stage-től
             let currentFocus = global.stage.get_key_focus();
             if (currentFocus && (currentFocus === this.noteEntry || this.actor.contains(currentFocus))) {
                 global.stage.set_key_focus(null);
@@ -229,7 +220,6 @@ export class NoteBox {
             reactive: false,
         });
 
-        // Segédfüggvény: megakadályozza a gombok oválissá torzulását
         let formatRoundButton = (btn) => {
             btn.actor.x_expand = false;
             btn.actor.y_expand = false;
@@ -238,13 +228,11 @@ export class NoteBox {
             btn.actor.set_size(26, 26);
         };
 
-        // BAL OLDAL: Új cetli (+)
         let btnNew = new Menus.NoteRoundButton(this, 'list-add-symbolic', _("New"));
         formatRoundButton(btnNew);
         btnNew.actor.connect('clicked', this._createNote.bind(this));
         this._buttonsBox.add_child(btnNew.actor);
 
-        // KÖZÉP: Húzható mozgatófelület
         this.moveBox = new St.Button({
             x_expand: true,
             y_expand: true,
@@ -252,19 +240,16 @@ export class NoteBox {
         });
         this._buttonsBox.add_child(this.moveBox);
 
-        // JOBB OLDAL: Színválasztó (...)
         let btnOptions = new Menus.NoteRoundButton(this, 'view-more-symbolic', _("Colors"));
         formatRoundButton(btnOptions);
         btnOptions.addMenu();
         this._buttonsBox.add_child(btnOptions.actor);
 
-        // JOBB OLDAL: Bezárás (X)
         let btnClose = new Menus.NoteRoundButton(this, 'window-close-symbolic', _("Close"));
         formatRoundButton(btnClose);
         btnClose.actor.connect('clicked', this._deleteNoteObject.bind(this));
         this._buttonsBox.add_child(btnClose.actor);
 
-        // Mozgatási események
         this.moveBox.connect('button-press-event', this._onMovePress.bind(this));
         this.moveBox.connect('motion-event', this._onMoveMotion.bind(this));
         this.moveBox.connect('button-release-event', this._onRelease.bind(this));
@@ -298,7 +283,6 @@ export class NoteBox {
     }
 
     _initDragAndResize() {
-        // captured-event: elkapja a méretezési és mozgatási eseményeket
         this.actor.connect('captured-event', (actor, event) => {
             let eventType = event.type();
 
@@ -363,8 +347,6 @@ export class NoteBox {
     }
 
     _setCursorForEdge(edge) {
-        // A Mutter g_assert összeomlásának elkerülése érdekében
-        // nem hívjuk meg a problémás global.display.set_cursor API-t.
         return;
     }
 
@@ -675,7 +657,6 @@ export class NoteBox {
     }
 
     destroy () {
-        // Megsemmisítés előtt biztonságosan lekapcsoljuk a fókuszfigyelőket
         this._setActive(false);
 
         if (this.actor) {

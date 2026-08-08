@@ -1,6 +1,3 @@
-// notes@maestroschan.fr/extension.js
-// GPL v3
-// Copyright 2018-2021 Romain F. T.
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import Gettext from 'gettext';
 

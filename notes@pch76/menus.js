@@ -30,7 +30,6 @@ export class NoteOptionsMenu extends EventEmitter {
     _redisplay () {
         this.super_menu.removeAll();
 
-        // 1. Sor: Sárga, Zöld, Rózsaszín
         let row1 = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
             activate: false,
@@ -42,7 +41,6 @@ export class NoteOptionsMenu extends EventEmitter {
         this._addColorButton(row1, 'pink');
         this.super_menu.addMenuItem(row1);
 
-        // 2. Sor: Lila, Kék, Sötét
         let row2 = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
             activate: false,
