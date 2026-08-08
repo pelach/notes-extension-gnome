@@ -69,7 +69,7 @@ export class NoteBox {
 
         // 2. GÖRGETHETŐ SZÖVEGMEZŐ
         this._scrollView = new St.ScrollView({
-            overlay_scrollbars: false, 
+            overlay_scrollbars: false, // Látható görgetősáv
             x_expand: true,
             y_expand: true,
             clip_to_allocation: true,
@@ -92,9 +92,14 @@ export class NoteBox {
         clutterText.set_activatable(false);
         clutterText.set_line_wrap(true);
         clutterText.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
-        clutterText.set_use_markup(false); // Sima szöveg (a < és > jelek nem törnek össze)
+        clutterText.set_use_markup(false);
 
         clutterText.connect('cursor-changed', () => {
+            this._ensureCursorVisible(clutterText);
+        });
+
+        clutterText.connect('text-changed', () => {
+            this._updateEntryHeight();
             this._ensureCursorVisible(clutterText);
         });
 
@@ -107,17 +112,12 @@ export class NoteBox {
             return Clutter.EVENT_PROPAGATE;
         });
 
+        // Az St.BoxLayout megvalósítja az St.Scrollable-t!
         this._entryBox = new St.BoxLayout({
             vertical: true,
             reactive: true,
             x_expand: true,
-            y_expand: true,
-            visible: this.entry_is_visible,
-        });
-
-        this._entryBox.connect('button-press-event', () => {
-            this.noteEntry.grab_key_focus();
-            return Clutter.EVENT_PROPAGATE;
+            y_expand: false, // LÉNYEGES: y_expand: false -> engedi a magasságot megnőni!
         });
 
         this._entryBox.add_child(this.noteEntry);
@@ -129,19 +129,21 @@ export class NoteBox {
 
         this.noteEntry.connect('button-press-event', this._getKeyFocus.bind(this));
 
+        // Egérgörgő bekötése
         this.noteEntry.connect('scroll-event', (actor, event) => {
             let vadj = this._scrollView.vadjustment;
             if (!vadj) return Clutter.EVENT_PROPAGATE;
 
             let direction = event.get_scroll_direction();
+            let step = 35;
 
             if (direction === Clutter.ScrollDirection.DOWN) {
-                vadj.value = Math.min(vadj.upper - vadj.page_size, vadj.value + 35);
+                vadj.value = Math.min(vadj.upper - vadj.page_size, vadj.value + step);
             } else if (direction === Clutter.ScrollDirection.UP) {
-                vadj.value = Math.max(vadj.lower, vadj.value - 35);
+                vadj.value = Math.max(vadj.lower, vadj.value - step);
             } else if (direction === Clutter.ScrollDirection.SMOOTH) {
-                let [dx, dy] = event.get_scroll_delta();
-                vadj.value = Math.min(Math.max(vadj.lower, vadj.value + dy * 20), vadj.upper - vadj.page_size);
+                let [, dy] = event.get_scroll_delta();
+                vadj.value = Math.min(Math.max(vadj.lower, vadj.value + dy * step), vadj.upper - vadj.page_size);
             }
             return Clutter.EVENT_STOP;
         });
@@ -156,6 +158,12 @@ export class NoteBox {
     }
 
     _setActive(active) {
+        if (active) {
+            this._redraw();
+            this.noteEntry.grab_key_focus();
+        }
+
+        if (this._isActive === active && !active) return;
         this._isActive = active;
 
         if (this._buttonsBox) {
@@ -163,9 +171,6 @@ export class NoteBox {
         }
 
         if (active) {
-            this._redraw();
-            this.noteEntry.grab_key_focus();
-
             if (!this._stageClickId) {
                 this._stageClickId = global.stage.connect('captured-event', (stage, event) => {
                     if (!this.actor) return Clutter.EVENT_PROPAGATE;
@@ -180,8 +185,9 @@ export class NoteBox {
                 });
             }
         } else {
-            // LÉNYEGES: Megfosztjuk a szövegmezőt a billentyűzet-fókusztól!
-            if (global.stage.get_key_focus() === this.noteEntry) {
+            // Elvesszük a fókuszt a cetlitől és a benne lévő clutterText-től is
+            let currentFocus = global.stage.get_key_focus();
+            if (currentFocus && (currentFocus === this.noteEntry || this.actor.contains(currentFocus))) {
                 global.stage.set_key_focus(null);
             }
 
@@ -475,6 +481,13 @@ export class NoteBox {
             vadj.value += cursorY - 15;
         }
     }
+    
+    _updateEntryHeight() {
+        let clutterText = this.noteEntry.get_clutter_text();
+        let [, prefHeight] = clutterText.get_preferred_height(-1);
+        // Frissítjük az St.Entry magasságát, hogy a ScrollView érzékelje a túlcsordulást
+        this.noteEntry.set_height(Math.max(30, prefHeight + 10));
+    }
 
     _setNotePosition () {
         let monitor = Main.layoutManager.primaryMonitor;
@@ -579,6 +592,8 @@ export class NoteBox {
         let content = stringFromArray(contents);
 
         this.noteEntry.set_text(content);
+
+        this._updateEntryHeight();
     }
 
     _saveText () {
