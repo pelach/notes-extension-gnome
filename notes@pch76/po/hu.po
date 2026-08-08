@@ -1,0 +1,184 @@
+# Hungarian translations for notes@pch package.
+# Copyright (C) 2026 THE notes@pch'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the notes@pch package.
+# pch <pelach.andras@gmail.com>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: notes@pch 76\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-08 21:04+0200\n"
+"PO-Revision-Date: 2026-08-08 21:05+0200\n"
+"Last-Translator: pch <pelach.andras@gmail.com>\n"
+"Language-Team: Hungarian <translation-team-hu@lists.sourceforge.net>\n"
+"Language: hu\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Show notes"
+msgstr "Jegyzetek megjelenítése"
+
+#: extension.js:110
+msgid "Notes extension error: failed to load a note"
+msgstr "Bővítmény hiba: a jegyzet betöltése sikertelen"
+
+#: noteBox.js:82
+msgid "Type here…"
+msgstr "Írj ide…"
+
+#: noteBox.js:240
+msgid "New"
+msgstr "Új"
+
+#: noteBox.js:254
+msgid "Colors"
+msgstr "Színek"
+
+#: noteBox.js:260
+msgid "Close"
+msgstr "Bezárás"
+
+#: prefs.js:15
+msgid "Settings"
+msgstr "Beállítások"
+
+#: prefs.js:22
+msgid "Position & Behavior"
+msgstr "Pozíció és működés"
+
+#: prefs.js:28
+msgid "Position of notes"
+msgstr "Jegyzetek pozíciója"
+
+#: prefs.js:29
+msgid "Choose how notes are layered on the screen"
+msgstr "Válaszd ki a jegyzetek rétegsorrendjét a képernyőn"
+
+#: prefs.js:31
+msgid "Above everything"
+msgstr "Minden felett"
+
+#: prefs.js:32
+msgid "On the background"
+msgstr "A háttéren"
+
+#: prefs.js:33
+msgid "Cycle through 3 states"
+msgstr "Ciklikus váltás 3 állapot között"
+
+#: prefs.js:52
+msgid "Hide top panel icon"
+msgstr "Felső panel ikon elrejtése"
+
+#: prefs.js:62
+msgid "Keyboard Shortcut"
+msgstr "Billentyűparancs"
+
+#: prefs.js:67
+msgid "Use keyboard shortcut"
+msgstr "Billentyűparancs használata"
+
+#: prefs.js:68
+msgid "Toggle notes visibility with a hotkey (Default: <Super><Alt>n)"
+msgstr "Jegyzetek ki/be kapcsolása gyorsbillentyűvel (Alapértelmezett: <Super><Alt>n)"
+
+#: prefs.js:74
+msgid "Shortcut"
+msgstr "Gyorsbillentyű"
+
+#: prefs.js:81
+msgid "Apply"
+msgstr "Alkalmaz"
+
+#: prefs.js:99
+msgid "Appearance"
+msgstr "Megjelenés"
+
+#: prefs.js:104
+msgid "Yellow"
+msgstr "Sárga"
+
+#: prefs.js:105
+msgid "Green"
+msgstr "Zöld"
+
+#: prefs.js:106
+msgid "Pink"
+msgstr "Rózsaszín"
+
+#: prefs.js:107
+msgid "Purple"
+msgstr "Lila"
+
+#: prefs.js:108
+msgid "Blue"
+msgstr "Kék"
+
+#: prefs.js:109
+msgid "Dark"
+msgstr "Sötét"
+
+#: prefs.js:113
+msgid "Default Note Color"
+msgstr "Alapértelmezett jegyzetszín"
+
+#: prefs.js:114
+msgid "Default pastel color used for new sticky notes"
+msgstr "Új cetliknél használt alapértelmezett pasztell szín"
+
+#: prefs.js:147
+msgid "Backup"
+msgstr "Biztonsági mentés"
+
+#: prefs.js:153
+msgid "Data Storage"
+msgstr "Adattárolás"
+
+#: prefs.js:154
+msgid ""
+"Your notes are saved to disk automatically. Files ending with _state store "
+"position/color, and _text contain the note content."
+msgstr ""
+"A jegyzetek automatikusan mentésre kerülnek a lemezre. A _state végű fájlok a pozíciót/színt, a _text végűek a tartalmát tárolják."
+
+#: prefs.js:159
+msgid "Storage Directory"
+msgstr "Tárolási könyvtár"
+
+#: prefs.js:160
+msgid "Open the folder where notes are saved"
+msgstr "A jegyzetek mentési mappájának megnyitása"
+
+#: prefs.js:181
+msgid "Help & About"
+msgstr "Súgó és Névjegy"
+
+#: prefs.js:187
+msgid "Troubleshooting"
+msgstr "Hibaelhárítás"
+
+#: prefs.js:192
+msgid "Bring back notes"
+msgstr "Jegyzetek visszahozása"
+
+#: prefs.js:193
+msgid "Click if a note got stuck outside your primary monitor"
+msgstr "Kattints ide, ha egy jegyzet beragadt az elsődleges monitoron kívül"
+
+#: prefs.js:197
+msgid "Reset Position"
+msgstr "Pozíciók alaphelyzetbe állítása"
+
+#: prefs.js:208
+msgid "About Notes"
+msgstr "A Notes névjegye"
+
+#: prefs.js:213
+msgid "Extension Version"
+msgstr "Bővítmény verziója"
+
+#: prefs.js:219
+msgid "Source Code / Bug Report"
+msgstr "Forráskód / Hibabejelentés"

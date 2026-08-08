@@ -1,5 +1,5 @@
 {
-	"description": "Sticky notes for the GNOME Shell desktop.",
+	"description": "Simple notes for the GNOME Shell desktop.",
 	"gettext-domain": "notes-extension",
 	"name": "Notes",
 	"shell-version": [

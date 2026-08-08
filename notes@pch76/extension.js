@@ -22,6 +22,9 @@ export { PATH, NOTES_MANAGER, SETTINGS, LAYER_SETTING };
 
 export default class NotesExtension extends Extension {
     enable() {
+        
+        this.initTranslations();
+
         PATH = GLib.build_pathv('/', [GLib.get_user_data_dir(), this.uuid]);
         try {
             let a = Gio.file_new_for_path(PATH);
