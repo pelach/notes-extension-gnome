@@ -1,8 +1,8 @@
-# Sticky notes extension
+# Simple notes extension
 
 A GNOME Shell extension providing customizable sticky notes.
 
-![](./notes@maestroschan.fr/screenshots/about_picture.png)
+![](./notes@pch76/screenshots/picture.png)
 
 ### Compatible versions
 
