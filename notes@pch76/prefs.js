@@ -1,4 +1,6 @@
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import Gettext from 'gettext';
+const _ = Gettext.domain('notes@pch76').gettext;
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
 import GLib from 'gi://GLib';

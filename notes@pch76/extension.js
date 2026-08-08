@@ -1,7 +1,11 @@
 // notes@maestroschan.fr/extension.js
 // GPL v3
 // Copyright 2018-2021 Romain F. T.
-import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import Gettext from 'gettext';
+
+const _ = Gettext.domain('notes@pch76').gettext;
+
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import St from 'gi://St';

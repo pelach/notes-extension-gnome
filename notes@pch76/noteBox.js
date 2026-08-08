@@ -5,7 +5,9 @@ import Gio from 'gi://Gio';
 import Pango from 'gi://Pango';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
+import Gettext from 'gettext';
+
+const _ = Gettext.domain('notes@pch76').gettext;
 
 import * as Menus from './menus.js';
 import { PATH, SETTINGS, NOTES_MANAGER } from './extension.js';

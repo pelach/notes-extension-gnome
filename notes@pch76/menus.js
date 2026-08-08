@@ -4,7 +4,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { EventEmitter } from 'resource:///org/gnome/shell/misc/signals.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
-
+import Gettext from 'gettext';
+const _ = Gettext.domain('notes@pch76').gettext;
 import { PASTEL_COLORS } from './noteBox.js';
 
 export class NoteOptionsMenu extends EventEmitter {
