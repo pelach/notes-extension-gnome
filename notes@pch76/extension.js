@@ -312,4 +312,14 @@ class NotesManager {
             this._timeout_id = null;
         }
     }
+
+    setActiveNote(activeNote) {
+        this._allNotes.forEach(note => {
+            if (note === activeNote) {
+                note._setActive(true);
+            } else {
+                note._setActive(false);
+            }
+        });
+    }
 }

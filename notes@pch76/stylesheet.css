@@ -1,70 +1,14 @@
 .noteBoxStyle {
-	padding: 0px;
-	margin: 0px;
-}
-
-/* Árnyék kikapcsolva, hogy ne legyen fekete keret és beragadás */
-.noteBoxStyle:hover {
-	box-shadow: none;
-}
-
-.notesTextField {
-    background-color: transparent !important;
-    background-image: none !important;
-    border: none !important;
-    padding: 4px;
-}
-
-.notesBackground {
-	background-gradient-start: rgba(0, 0, 0, 0.3);
-	background-gradient-end: rgba(0, 0, 0, 0.9);
-	background-gradient-direction: vertical;
-}
-
-/* Notes' headers and the buttons in them *************************************/
-
-.notesTitleButton {
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-.noteHeaderStyle {
-    padding: 4px;
-    spacing: 4px;
-}
-
-.notesCircleButton {
-	border-width: 1px;
-	border-radius: 14px;
-	height: 28px;
-	width: 28px;
-	border-style: solid;
-	border-color: black;
-}
-
-/* Intended to be used with notesCircleButton */
-.notesHeaderboxButton {
-	border-style: solid;
-	border-color: grey;
-}
-
-.notesCircleButton:hover, .notesCircleButton:active {
-	border-width: 2px;
-	border-radius: 10px;
-	height: 26px;
-	width: 26px;
-}
-
-.noteBoxStyle {
     padding: 0px;
     margin: 0px;
+    border-radius: 8px;
+    /* Lágy árnyék az asztaltól való elváláshoz */
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Árnyék kikapcsolva, hogy ne legyen fekete keret és beragadás */
 .noteBoxStyle:hover,
 .noteBoxStyle:focus {
-    box-shadow: none !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
 }
 
 /* Szövegbeviteli mező letisztítása ******************************************/
@@ -79,13 +23,13 @@
     padding: 4px;
 }
 
-.notesBackground {
-    background-gradient-start: rgba(0, 0, 0, 0.3);
-    background-gradient-end: rgba(0, 0, 0, 0.9);
-    background-gradient-direction: vertical;
-}
+/* Fejléc, Lábléc és Címsor **************************************************/
 
-/* Fejléc és gombok **********************************************************/
+.noteHeaderStyle,
+.noteFooterStyle {
+    padding: 4px;
+    spacing: 4px;
+}
 
 .notesTitleButton {
     background-color: transparent !important;
@@ -93,30 +37,26 @@
     box-shadow: none !important;
 }
 
-.noteHeaderStyle {
-    padding: 4px;
-    spacing: 4px;
-}
+/* Kerek gombok (Fejlécben és Láblécben egyaránt) ***************************/
 
-.notesCircleButton {
-    border-width: 1px;
-    border-style: solid;
-    border-color: black;
-    border-radius: 50% !important; 
-    height: 28px;
-    width: 28px;
-}
-
+.notesCircleButton,
 .notesHeaderboxButton {
-    border-style: solid;
-    border-color: grey;
+    border: none !important;
+    border-radius: 9999px !important;          /* Garantáltan kerek gombok */
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    padding: 0px !important;
+    margin: 2px !important;
+    background-color: rgba(0, 0, 0, 0.08) !important; /* Finom hátterű kerek gombok */
 }
 
-
-.notesCircleButton:hover, 
-.notesCircleButton:active {
-    border-width: 2px;
-    border-color: black;
-    border-radius: 50% !important; 
-    background-color: rgba(0, 0, 0, 0.15) !important;;
+/* Egér fölévitelekor (Hover) */
+.notesCircleButton:hover,
+.notesCircleButton:active,
+.notesHeaderboxButton:hover,
+.notesHeaderboxButton:active {
+    background-color: rgba(0, 0, 0, 0.18) !important;
+    border: none !important;
 }

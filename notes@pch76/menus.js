@@ -1,6 +1,3 @@
-// notes@maestroschan.fr/menus.js
-// GPL v3
-// Copyright 2018-2021 Romain F. T.
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -8,20 +5,7 @@ import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import { EventEmitter } from 'resource:///org/gnome/shell/misc/signals.js';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import { NOTES_MANAGER } from './extension.js';
-
-const PRESET_COLORS = {
-    'red': [200, 0, 0],
-    'green': [0, 150, 0],
-    'blue': [0, 0, 180],
-
-    'magenta': [255, 50, 255],
-    'yellow': [255, 255, 50],
-    'cyan': [0, 255, 255],
-
-    'white': [255, 255, 255],
-    'black': [50, 50, 50]
-};
+import { PASTEL_COLORS } from './noteBox.js';
 
 export class NoteOptionsMenu extends EventEmitter {
     constructor (source) {
@@ -45,188 +29,58 @@ export class NoteOptionsMenu extends EventEmitter {
     _redisplay () {
         this.super_menu.removeAll();
 
-        this.size_item = new PopupMenu.PopupBaseMenuItem({
+        // 1. Sor: Sárga, Zöld, Rózsaszín
+        let row1 = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
             activate: false,
             hover: false,
-            style_class: null,
             can_focus: false
         });
-        this.super_menu.addMenuItem(this.size_item);
-        this._buildSizeItem();
+        this._addColorButton(row1, 'yellow');
+        this._addColorButton(row1, 'green');
+        this._addColorButton(row1, 'pink');
+        this.super_menu.addMenuItem(row1);
 
-        this._appendSeparator();
-
-        this.color1_item = new PopupMenu.PopupBaseMenuItem({
+        // 2. Sor: Lila, Kék, Sötét
+        let row2 = new PopupMenu.PopupBaseMenuItem({
             reactive: false,
             activate: false,
             hover: false,
-            style_class: null,
             can_focus: false
         });
-        this._addColorButton('red', 1);
-        this._addColorButton('green', 1);
-        this._addColorButton('blue', 1);
-        this._addColorButton('black', 1);
-        this.super_menu.addMenuItem(this.color1_item);
-
-        this.color2_item = new PopupMenu.PopupBaseMenuItem({
-            reactive: false,
-            activate: false,
-            hover: false,
-            style_class: null,
-            can_focus: false
-        });
-        this._addColorButton('cyan', 2);
-        this._addColorButton('magenta', 2);
-        this._addColorButton('yellow', 2);
-        this._addColorButton('white', 2);
-        this.super_menu.addMenuItem(this.color2_item);
-
-        let colorSubmenuItem = new PopupMenu.PopupSubMenuMenuItem(_("Custom color"));
-        this.super_menu.addMenuItem(colorSubmenuItem);
-        this._buildCustomColorMenu(colorSubmenuItem.menu);
-
-        this._appendSeparator();
-
-        this.super_menu.addAction(_("Settings"), this._onSettings.bind(this));
+        this._addColorButton(row2, 'purple');
+        this._addColorButton(row2, 'blue');
+        this._addColorButton(row2, 'charcoal');
+        this.super_menu.addMenuItem(row2);
     }
 
-    _buildCustomColorMenu (colorSubmenu) {
-        this._customColorEntries = [];
-        let rgb = this._source._note.customColor.split(',');
-        this._addCustomColorEntry('#BB3322', rgb[0], colorSubmenu);
-        this._addCustomColorEntry('#22BB33', rgb[1], colorSubmenu);
-        this._addCustomColorEntry('#2233BB', rgb[2], colorSubmenu);
+    _addColorButton (container, colorKey) {
+        let colorData = PASTEL_COLORS[colorKey];
+        if (!colorData) return;
 
-        let applyMenuItem = new PopupMenu.PopupMenuItem(_("Apply"));
-        applyMenuItem.connect('activate', this._onApplyCustom.bind(this));
-        colorSubmenu.addMenuItem(applyMenuItem);
-    }
+        let [r, g, b] = colorData.rgb.split(',');
 
-    _addCustomColorEntry (bgColorCSS, textContent, colorSubmenu) {
-        let colorMenuItem = new PopupMenu.PopupBaseMenuItem({
-            reactive: false,
-            activate: false,
-            hover: false,
-            style_class: null,
-            can_focus: false
-        });
-
-        let colorEntry = new St.Entry({
-            can_focus: true,
-            track_hover: true,
-            x_expand: true
-        });
-        colorEntry.set_text(textContent);
-        colorEntry.style = 'background-color: ' + bgColorCSS + '; color: #FFFFFF';
-
-        colorMenuItem.actor.add_child(colorEntry);
-        this._customColorEntries.push(colorEntry);
-        colorSubmenu.addMenuItem(colorMenuItem);
-    }
-
-    _buildSizeItem () {
-        let sizeLabel = new St.Label({
-            text: _("Font size"),
-            x_expand: true,
-            x_align: Clutter.ActorAlign.START,
-            y_align: Clutter.ActorAlign.CENTER,
-        });
-
-        let bigger = new St.Button({
-            style_class: 'button',
-            style: 'margin: 0px; padding-left: 8px; padding-right: 8px;',
-            child: new St.Icon({
-                icon_name: 'zoom-in-symbolic',
-                icon_size: 16,
-                style_class: 'system-status-icon',
-                x_expand: true,
-                y_expand: true,
-                x_align: Clutter.ActorAlign.CENTER,
-                y_align: Clutter.ActorAlign.CENTER,
-            }),
-        });
-        let smaller = new St.Button({
-            style_class: 'button',
-            style: 'margin: 0px; padding-left: 8px; padding-right: 8px;',
-            child: new St.Icon({
-                icon_name: 'zoom-out-symbolic',
-                icon_size: 16,
-                style_class: 'system-status-icon',
-                x_expand: true,
-                y_expand: true,
-                x_align: Clutter.ActorAlign.CENTER,
-                y_align: Clutter.ActorAlign.CENTER,
-            }),
-        });
-
-        smaller.connect('clicked', this._onSmaller.bind(this));
-        bigger.connect('clicked', this._onBigger.bind(this));
-
-        this.size_item.actor.add_child(sizeLabel);
-        this.size_item.actor.add_child(smaller);
-        this.size_item.actor.add_child(bigger);
-    }
-
-    _addColorButton (color, line) {
-        let rgb = PRESET_COLORS[color];
         let btn = new St.Button({
             style_class: 'notesCircleButton',
-            style: 'background-color: rgb(' + rgb[0] + ','
-                                            + rgb[1] + ','
-                                            + rgb[2] + ');',
+            style: `background-color: rgb(${r}, ${g}, ${b}); margin: 2px;`,
             x_expand: true,
             x_align: Clutter.ActorAlign.CENTER,
+            reactive: true,
+            can_focus: true,
+            track_hover: true,
         });
-        if (line == 1) {
-            this.color1_item.actor.add_child(btn);
-        } else {
-            this.color2_item.actor.add_child(btn);
-        }
-        btn.connect('clicked', this._onApply.bind(this, color));
-    }
 
-    _appendSeparator () {
-        this.super_menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-    }
+        btn.connect('clicked', () => {
+            this._source._note.applyColorAndSave(Number(r), Number(g), Number(b));
+            this.super_menu.close();
+        });
 
-    _onApplyCustom () {
-        let r = Number(this._customColorEntries[0].get_text());
-        let g = Number(this._customColorEntries[1].get_text());
-        let b = Number(this._customColorEntries[2].get_text());
-        this._source._note.applyColorAndSave(r, g, b);
-    }
-
-    _onSettings () {
-        if (this._source._note._extension) {
-            this._source._note._extension.openPreferences();
-        }
-        if (NOTES_MANAGER) {
-            NOTES_MANAGER._hideNotes();
-        }
-    }
-
-    _onEditTitle () {
-        this._source._note.openEditTitleDialog();
-    }
-
-    _onApply (color, button) {
-        let rgb = PRESET_COLORS[color];
-        this._source._note.applyColorAndSave(rgb[0], rgb[1], rgb[2]);
+        container.actor.add_child(btn);
     }
 
     popup (activatingButton) {
         this._redisplay();
         this.super_menu.toggle();
-    }
-
-    _onBigger () {
-        this._source._note.changeFontSize(1);
-    }
-
-    _onSmaller () {
-        this._source._note.changeFontSize(-1);
     }
 }
 

@@ -1,10 +1,6 @@
-// notes@maestroschan.fr/prefs.js
-// GPL v3
-// Copyright 2018-2021 Romain F. T.
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 import Adw from 'gi://Adw';
 import Gtk from 'gi://Gtk';
-import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
@@ -109,42 +105,49 @@ export default class NotesExtensionPreferences extends ExtensionPreferences {
             shortcutEntryRow.sensitive = active;
         });
 
-        // --- Színek csoport ---
+        // --- Színek csoport (Pasztell opciók) ---
         const groupAppearance = new Adw.PreferencesGroup({
             title: _('Appearance'),
         });
         pageSettings.add(groupAppearance);
 
-        const colorRow = new Adw.ActionRow({
-            title: _("First note's color"),
-            subtitle: _('New notes will inherit the parent note color'),
+        const PASTEL_OPTIONS = [
+            { name: _('Yellow'), floatRgb: ['1.0', '0.9686', '0.8196'], rgbString: '255,247,209' },
+            { name: _('Green'),  floatRgb: ['0.8862', '0.9411', '0.7960'], rgbString: '226,240,203' },
+            { name: _('Pink'),   floatRgb: ['1.0', '0.8980', '0.9254'], rgbString: '255,229,236' },
+            { name: _('Purple'), floatRgb: ['0.9098', '0.8745', '0.9607'], rgbString: '232,223,245' },
+            { name: _('Blue'),   floatRgb: ['0.8156', '0.8823', '0.9921'], rgbString: '208,225,253' },
+            { name: _('Dark'),   floatRgb: ['0.2196', '0.2196', '0.2196'], rgbString: '56,56,56' },
+        ];
+
+        const colorRow = new Adw.ComboRow({
+            title: _("Default Note Color"),
+            subtitle: _('Default pastel color used for new sticky notes'),
+            model: Gtk.StringList.new(PASTEL_OPTIONS.map(c => c.name)),
         });
 
-        const colorBtn = new Gtk.ColorButton({
-            valign: Gtk.Align.CENTER,
-            use_alpha: false,
-        });
-
+        // Betöltés a meglévő first-note-rgb beállításból
         const colorArray = this._settings.get_strv('first-note-rgb');
-        let rgba = new Gdk.RGBA();
+        let selectedIdx = 0;
         if (colorArray && colorArray.length >= 3) {
-            rgba.red = parseFloat(colorArray[0]);
-            rgba.green = parseFloat(colorArray[1]);
-            rgba.blue = parseFloat(colorArray[2]);
-            rgba.alpha = 1.0;
-        }
-        colorBtn.set_rgba(rgba);
+            let r = Math.round(parseFloat(colorArray[0]) * 255);
+            let g = Math.round(parseFloat(colorArray[1]) * 255);
+            let b = Math.round(parseFloat(colorArray[2]) * 255);
 
-        colorBtn.connect('color-set', (widget) => {
-            rgba = widget.get_rgba();
-            this._settings.set_strv('first-note-rgb', [
-                rgba.red.toString(),
-                rgba.green.toString(),
-                rgba.blue.toString()
-            ]);
+            let foundIdx = PASTEL_OPTIONS.findIndex(c => {
+                let [pr, pg, pb] = c.rgbString.split(',').map(Number);
+                return Math.abs(pr - r) < 15 && Math.abs(pg - g) < 15 && Math.abs(pb - b) < 15;
+            });
+            if (foundIdx !== -1) selectedIdx = foundIdx;
+        }
+
+        colorRow.selected = selectedIdx;
+
+        colorRow.connect('notify::selected', () => {
+            const chosen = PASTEL_OPTIONS[colorRow.selected];
+            this._settings.set_strv('first-note-rgb', chosen.floatRgb);
         });
 
-        colorRow.add_suffix(colorBtn);
         groupAppearance.add(colorRow);
 
 
