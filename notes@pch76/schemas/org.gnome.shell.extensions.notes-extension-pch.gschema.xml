@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="notes-extension">
+  <schema id="org.gnome.shell.extensions.notes-extension-pch"
+          path="/org/gnome/shell/extensions/notes-extension-pch/">
+
+
+    <key type="s" name="layout-position">
+      <default>"above-all"</default>
+      <summary>Layer on which the notes are displayed</summary>
+      <description>
+        Possible values are "above-all", "on-background", or "cycle-layers".
+        The idea of "cycle-layers" is that clicking on the icon sends the notes
+        above all if they were on the background, and vice versa; notes are
+        hidden between the foreground and the background (3 states).
+      </description>
+    </key>
+
+    <key type="as" name="first-note-rgb">
+      <default>['1.0', '0.9686', '0.8196']</default>
+      <summary>Color of the first note</summary>
+      <description>
+        The color for the very first note, all following note creations will use
+        the color of the parent note.
+      </description>
+    </key>
+
+    <key type="b" name="use-shortcut">
+      <default>false</default>
+      <summary>Keyboard shortcut</summary>
+      <description>If the keyboard shortcut should be active</description>
+    </key>
+    <key name="notes-kb-shortcut" type="as">
+      <default><![CDATA[['<Super><Alt>n','']]]></default>
+      <summary>Keyboard shortcut value</summary>
+      <description>Keyboard shortcut which shows or hides notes.</description>
+    </key>
+    <key type="b" name="hide-icon">
+      <default>false</default>
+      <summary>Hide the icon</summary>
+      <description>Should be true only if there is shortcut.</description>
+    </key>
+
+    <!-- -->
+
+    <key type="b" name="ugly-hack">
+      <default>true</default>
+      <summary>This has no actual meaning</summary>
+      <description>
+        This setting is used to call an extension.js method from prefs.js
+      </description>
+    </key>
+
+  </schema>
+</schemalist>
+
