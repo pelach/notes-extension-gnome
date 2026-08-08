@@ -91,7 +91,7 @@ export class NoteBox {
         clutterText.set_activatable(false);
         clutterText.set_line_wrap(true);
         clutterText.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
-        clutterText.set_use_markup(true);
+        clutterText.set_use_markup(false);
 
         clutterText.connect('cursor-changed', () => {
             this._ensureCursorVisible(clutterText);
