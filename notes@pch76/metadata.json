@@ -1,6 +1,6 @@
 {
 	"description": "Simple notes for the GNOME Shell desktop.",
-	"gettext-domain": "notes-extension",
+	"gettext-domain": "notes@pch76",
 	"name": "Notes",
 	"shell-version": [
 		"48",
