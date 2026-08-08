@@ -55,7 +55,7 @@ export class NoteBox {
             min_width: MIN_WIDTH,
             style_class: 'noteBoxStyle',
             track_hover: true,
-            clip_to_allocation: true,
+            clip_to_allocation: false,
         });
 
         this._fontColor = '';
@@ -91,7 +91,7 @@ export class NoteBox {
         clutterText.set_activatable(false);
         clutterText.set_line_wrap(true);
         clutterText.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR);
-        clutterText.set_use_markup(false);
+        clutterText.set_use_markup(true);
 
         clutterText.connect('cursor-changed', () => {
             this._ensureCursorVisible(clutterText);
