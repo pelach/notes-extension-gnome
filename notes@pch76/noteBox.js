@@ -14,7 +14,7 @@ import { PATH, SETTINGS, NOTES_MANAGER } from './extension.js';
 
 const MIN_HEIGHT = 75;
 const MIN_WIDTH = 200;
-const EDGE_MARGIN = 8;
+const EDGE_MARGIN = 15;
 
 export const PASTEL_COLORS = {
     'yellow':   { name: "Yellow", rgb: '255,247,209', hex: '#fff7d1' },
@@ -158,8 +158,15 @@ export class NoteBox {
         this._isActive = active;
 
         if (this._buttonsBox) {
-            this._buttonsBox.opacity = active ? 255 : 0;
             this._buttonsBox.reactive = active;
+
+            // Animált beúszás / eltűnés
+            this._buttonsBox.ease({
+                opacity: active ? 255 : 0,
+                translation_y: active ? 0 : -20,
+                duration: 180, // Animáció hossza ms-ban
+                mode: active ? Clutter.AnimationMode.EASE_OUT_QUAD : Clutter.AnimationMode.EASE_IN_QUAD,
+            });
         }
 
         if (active) {
@@ -175,7 +182,6 @@ export class NoteBox {
 
                     if (event.type() === Clutter.EventType.BUTTON_PRESS) {
                         let target = event.get_source();
-                        // Ha a kattintott elem NINCS a cetlin belül:
                         if (!target || !this.actor.contains(target)) {
                             this._setActive(false);
                         }
@@ -216,7 +222,8 @@ export class NoteBox {
             y_expand: false,
             height: 34,
             visible: true,
-            opacity: 0,
+            opacity: 0,              // Alapból rejtett
+            translation_y: -20,      // 20 pixellel feljebb van
             reactive: false,
         });
 
@@ -424,7 +431,8 @@ export class NoteBox {
     }
 
     _applyNoteStyle () {
-        let style = 'background-color: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0px !important;';
+        // Hozzáadva: padding: 4px 12px 8px 12px !important;
+        let style = 'background-color: transparent !important; border: none !important; box-shadow: none !important; border-radius: 0px !important; padding: 4px 12px 8px 12px !important;';
 
         if (this._fontColor) {
             style += `color: ${this._fontColor} !important;`;

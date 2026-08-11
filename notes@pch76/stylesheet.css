@@ -1,6 +1,6 @@
 .noteBoxStyle {
     padding: 0px;
-    margin: 10px;
+    margin: 0px;
     border-radius: 8px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
 }
@@ -17,10 +17,16 @@
     background-image: none !important;
     border: none !important;
     box-shadow: none !important;
+    padding: 4px 12px 8px 12px !important;
+}
+.noteHeaderStyle {
     padding: 4px;
+    spacing: 4px;
+    background-color: rgba(0, 0, 0, 0.08) !important; /* ~2 árnyalattal sötétebb az alap cetli színnél */
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
 }
 
-.noteHeaderStyle,
 .noteFooterStyle {
     padding: 4px;
     spacing: 4px;
@@ -32,24 +38,25 @@
     box-shadow: none !important;
 }
 
+/* GOMBOK: Szögletesek/letisztultak keret és háttér nélkül */
 .notesCircleButton,
 .notesHeaderboxButton {
     border: none !important;
-    border-radius: 9999px !important;          
+    border-radius: 0px !important; /* Kerekítés levétele */          
     width: 26px !important;
     height: 26px !important;
     min-width: 26px !important;
     min-height: 26px !important;
     padding: 0px !important;
     margin: 2px !important;
-    background-color: rgba(0, 0, 0, 0.08) !important; 
+    background-color: transparent !important; /* Alapból átlátszó, mint a Windows-on */
 }
 
-
+/* Hover/Active esetén egy kis sötétedés a gomb mögött */
 .notesCircleButton:hover,
 .notesCircleButton:active,
 .notesHeaderboxButton:hover,
 .notesHeaderboxButton:active {
-    background-color: rgba(0, 0, 0, 0.18) !important;
+    background-color: rgba(0, 0, 0, 0.12) !important;
     border: none !important;
 }
