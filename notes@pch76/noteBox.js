@@ -175,7 +175,7 @@ export class NoteBox {
                 NOTES_MANAGER.setActiveNote(this);
             }
             this.noteEntry.grab_key_focus();
-
+            
             if (!this._stageClickId) {
                 this._stageClickId = global.stage.connect('captured-event', (stage, event) => {
                     if (!this.actor) return Clutter.EVENT_PROPAGATE;
@@ -198,6 +198,9 @@ export class NoteBox {
                 });
             }
         } else {
+
+            this._updateCursor(null);
+
             if (this._stageClickId) {
                 global.stage.disconnect(this._stageClickId);
                 this._stageClickId = null;
@@ -294,6 +297,13 @@ export class NoteBox {
             let eventType = event.type();
 
             if (eventType === Clutter.EventType.MOTION) {
+                let edge = this._getResizeEdge(event);
+
+                // Ha nem méretezünk épp, frissítjük a kurzort a szél alapján
+                if (!this._isResizing) {
+                    this._updateCursor(edge);
+                }
+
                 if (this._isResizing) {
                     let [px, py] = event.get_coords();
                     let dx = px - this.grabX;
@@ -345,8 +355,14 @@ export class NoteBox {
                 if (this._isResizing) {
                     this._isResizing = false;
                     this._resizeEdge = null;
+                    this._updateCursor(null); // Visszaállítjuk az alapértelmezett kurzort
                     this.onlySave();
                     return Clutter.EVENT_STOP;
+                }
+            } else if (eventType === Clutter.EventType.LEAVE) {
+                // Ha az egér elhagyja a cetlit, alaphelyzetbe állítjuk a kurzort
+                if (!this._isResizing) {
+                    this._updateCursor(null);
                 }
             }
             return Clutter.EVENT_PROPAGATE;
@@ -662,6 +678,33 @@ export class NoteBox {
         let noteId = this.id;
         this.destroy();
         NOTES_MANAGER.postDelete(noteId);
+    }
+
+    _updateCursor(edge) {
+        let cursorType = Meta.Cursor.DEFAULT;
+
+        if (edge) {
+            switch (edge) {
+                // Egyenes irányok (1 betűs rövidítések)
+                case 'N':  cursorType = Meta.Cursor.N_RESIZE; break;
+                case 'S':  cursorType = Meta.Cursor.S_RESIZE; break;
+                case 'E':  cursorType = Meta.Cursor.E_RESIZE; break;
+                case 'W':  cursorType = Meta.Cursor.W_RESIZE; break;
+
+                // Átlós irányok (2 betűs rövidítések)
+                case 'NW': cursorType = Meta.Cursor.NW_RESIZE; break;
+                case 'NE': cursorType = Meta.Cursor.NE_RESIZE; break;
+                case 'SE': cursorType = Meta.Cursor.SE_RESIZE; break;
+                case 'SW': cursorType = Meta.Cursor.SW_RESIZE; break;
+            }
+        }
+
+        // Mivel ezek a kulcsok garantáltan léteznek a tömbödben, 
+        // a set_cursor biztonságosan lefog futni!
+        if (this._currentCursor !== cursorType) {
+            this._currentCursor = cursorType;
+            global.display.set_cursor(cursorType);
+        }
     }
 
     destroy () {
