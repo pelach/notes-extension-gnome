@@ -280,6 +280,10 @@ export class NoteBox {
         let left = relX <= EDGE_MARGIN;
         let right = relX >= width - EDGE_MARGIN;
 
+        if (this._isActive && relY <= 34) {
+            top = false;
+        }
+
         if (bottom && right) return 'SE';
         if (bottom && left)  return 'SW';
         if (top && right)     return 'NE';
