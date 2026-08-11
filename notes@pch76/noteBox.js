@@ -274,15 +274,15 @@ export class NoteBox {
 
         let relX = px - ax;
         let relY = py - ay;
+        
+        if (this._isActive && relY <= 34) {
+            top = false;
+        }
 
         let top = relY <= EDGE_MARGIN;
         let bottom = relY >= height - EDGE_MARGIN;
         let left = relX <= EDGE_MARGIN;
         let right = relX >= width - EDGE_MARGIN;
-
-        if (this._isActive && relY <= 34) {
-            top = false;
-        }
 
         if (bottom && right) return 'SE';
         if (bottom && left)  return 'SW';
