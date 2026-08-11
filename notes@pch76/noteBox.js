@@ -6,6 +6,7 @@ import Pango from 'gi://Pango';
 import Meta from 'gi://Meta';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import Gettext from 'gettext';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
 const _ = Gettext.domain('notes@pch76').gettext;
 
@@ -151,6 +152,8 @@ export class NoteBox {
 
         this.grabX = this._x + 100;
         this.grabY = this._y + 10;
+
+        this._initContextMenu();
     }
 
     _setActive(active) {
@@ -276,7 +279,7 @@ export class NoteBox {
         let relY = py - ay;
         
         if (this._isActive && relY <= 34) {
-            top = false;
+            return null;
         }
 
         let top = relY <= EDGE_MARGIN;
@@ -711,8 +714,120 @@ export class NoteBox {
         }
     }
 
+    _initContextMenu() {
+        // 1. Láthatatlan 1x1-es elem az egérpozíció pontos lekövetésére
+        this._dummyMenuSource = new St.Widget({
+            width: 1,
+            height: 1,
+            visible: true,
+            opacity: 0,
+        });
+        Main.uiGroup.add_child(this._dummyMenuSource);
+
+        // 2. A menüt az egérpozíciót követő dummy elemhez horgonyozzuk
+        this._contextMenu = new PopupMenu.PopupMenu(this._dummyMenuSource, 0.0, St.Side.TOP);
+        Main.uiGroup.add_child(this._contextMenu.actor);
+        this._contextMenu.actor.hide();
+
+        // 3. PopupMenuManager: ez felelős a menün KÍVÜLI kattintások elcsípéséért és a bezárásért
+        this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
+        this._menuManager.addMenu(this._contextMenu);
+
+        let clutterText = this.noteEntry.get_clutter_text();
+
+        // 1. KIVÁGÁS
+        this._contextMenu.addAction(_("Kivágás"), () => {
+            let selection = clutterText.get_selection();
+            if (selection && selection.length > 0) {
+                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, selection);
+                clutterText.delete_selection();
+                this._updateEntryHeight();
+            }
+            this.noteEntry.grab_key_focus();
+        });
+
+        // 2. MÁSOLÁS
+        this._contextMenu.addAction(_("Másolás"), () => {
+            let selection = clutterText.get_selection();
+            if (selection && selection.length > 0) {
+                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, selection);
+            }
+            this.noteEntry.grab_key_focus();
+        });
+
+        // 3. BEILLESZTÉS
+        this._contextMenu.addAction(_("Beillesztés"), () => {
+            St.Clipboard.get_default().get_text(St.ClipboardType.CLIPBOARD, (clipboard, text) => {
+                if (text) {
+                    if (clutterText.get_selection()) {
+                        clutterText.delete_selection();
+                    }
+                    let pos = clutterText.get_cursor_position();
+                    if (pos < 0) pos = clutterText.get_text().length;
+                    
+                    clutterText.insert_text(text, pos);
+                    this._updateEntryHeight();
+                }
+                this.noteEntry.grab_key_focus();
+            });
+        });
+
+        // Elválasztó vonal
+        this._contextMenu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // 4. MINDENT KIJELÖL
+        this._contextMenu.addAction(_("Mindent kijelöl"), () => {
+            clutterText.set_selection(0, -1);
+            this.noteEntry.grab_key_focus();
+        });
+
+        // JOBBKLIKK ELKAPÁSA A CETLIN
+        this.actor.connect('captured-event', (actor, event) => {
+            if (event.type() === Clutter.EventType.BUTTON_PRESS && event.get_button() === 3) {
+                let [px, py] = event.get_coords();
+                let [ax, ay] = this.actor.get_transformed_position();
+                let relY = py - ay;
+
+                // Ha a fejlécben (0-34px) kattintunk, ott ne nyíljon helyi menü
+                if (relY <= 34) return Clutter.EVENT_PROPAGATE;
+
+                this._setActive(true);
+                this.noteEntry.grab_key_focus();
+
+                // Ha már nyitva volt a menü, bezárjuk az előzőt
+                if (this._contextMenu.isOpen) {
+                    this._contextMenu.close();
+                }
+
+                // A láthatatlan horgonyt áttesszük az egér MMOSTANI pozíciójára
+                this._dummyMenuSource.set_position(px, py);
+
+                // Megnyitjuk a menüt az új pozíción
+                this._contextMenu.open();
+                
+                return Clutter.EVENT_STOP;
+            }
+            return Clutter.EVENT_PROPAGATE;
+        });
+    }
+
     destroy () {
         this._setActive(false);
+
+        if (this.actor) {
+            this.actor.destroy_all_children();
+            this.actor.destroy();
+            this.actor = null;
+        }
+        if (this._contextMenu) {
+            this._contextMenu.destroy();
+            this._contextMenu = null;
+        }
+        
+        if (this._dummyMenuSource) {
+            this._dummyMenuSource.destroy();
+            this._dummyMenuSource = null;
+        }
 
         if (this.actor) {
             this.actor.destroy_all_children();
